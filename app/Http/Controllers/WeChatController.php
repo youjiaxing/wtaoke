@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use EasyWeChat\Kernel\Exceptions\HttpException;
+use EasyWeChat\Kernel\Messages\Image;
+use EasyWeChat\Kernel\Messages\Voice;
 use Illuminate\Http\Request;
 use Overtrue\LaravelWeChat\Facade as WeChat;
 
@@ -22,27 +24,29 @@ class WeChatController extends Controller
             @see https://www.easywechat.com/docs/master/zh-CN/official-account/server
 
             请求消息基本属性
-                 $message['MsgType']       消息类型：event, text....
-                 $message['ToUserName']    接收方帐号（该公众号 ID）
-                 $message['FromUserName']  发送方帐号（OpenID, 代表用户的唯一标识）
-                 $message['CreateTime']    消息创建时间（时间戳）
-                 $message['MsgId']         消息 ID（64位整型）
+            - MsgType       消息类型：event, text....
+            - ToUserName    接收方帐号（该公众号 ID）
+            - FromUserName  发送方帐号（OpenID, 代表用户的唯一标识）
+            - CreateTime    消息创建时间（时间戳）
+            - MsgId         消息 ID（64位整型）
+
             文本：
             - MsgType  text
             - Content  文本消息内容
-            图片：
 
+            图片：
             - MsgType  image
             - MediaId        图片消息媒体id，可以调用多媒体文件下载接口拉取数据。
             - PicUrl   图片链接
-            语音：
 
+            语音：
             - MsgType        voice
             - MediaId        语音消息媒体id，可以调用多媒体文件下载接口拉取数据。
             - Format         语音格式，如 amr，speex 等
             - Recognition * 开通语音识别后才有
 
             > 请注意，开通语音识别后，用户每次发送语音给公众号时，微信会在推送的语音消息XML数据包中，增加一个 `Recongnition` 字段
+
             视频：
 
             - MsgType       video
@@ -53,21 +57,21 @@ class WeChatController extends Controller
             - MsgType     shortvideo
             - MediaId     视频消息媒体id，可以调用多媒体文件下载接口拉取数据。
             - ThumbMediaId    视频消息缩略图的媒体id，可以调用多媒体文件下载接口拉取数据。
-            事件：
 
+            事件：
             - MsgType     event
             - Event       事件类型 （如：subscribe(订阅)、unsubscribe(取消订阅) ...， CLICK 等）
 
-            # 扫描带参数二维码事件
+            # 扫描带参数二维码事件 event = "subscribe"
             - EventKey    事件KEY值，比如：qrscene_123123，qrscene_为前缀，后面为二维码的参数值
             - Ticket      二维码的 ticket，可用来换取二维码图片
 
-            # 上报地理位置事件
+            # 上报地理位置事件 event = "LOCATION"
             - Latitude    23.137466   地理位置纬度
             - Longitude   113.352425  地理位置经度
             - Precision   119.385040  地理位置精度
 
-            # 自定义菜单事件
+            # 自定义菜单事件 event = "CLICK", 分为 [点击菜单拉取消息时的事件推送], 以及 [点击菜单跳转链接时的事件推送](此时 EventKey 为设置的跳转URL)
             - EventKey    事件KEY值，与自定义菜单接口中KEY值对应，如：CUSTOM_KEY_001, www.qq.com
 
             地理位置：
@@ -105,13 +109,26 @@ class WeChatController extends Controller
                     return '收到事件消息 Event: ' . $message['Event'];
                     break;
                 case 'text':
-                    return '收到文字消息 Content: ' . $message['Content'];
+                    switch ($message['Content']) {
+                        case 'link':
+                            return route('wechat.user', [], true);
+                            break;
+
+                        default:
+                            return '收到文字消息 Content: ' . $message['Content'];
+                            break;
+                    }
+
                     break;
                 case 'image':
-                    return "收到图片消息 MediaId: {$message['MediaId']}  PicUrl: {$message['PicUrl']}";
+                    return new Image($message['MediaId']);
+//                    return "收到图片消息 MediaId: {$message['MediaId']}  PicUrl: {$message['PicUrl']}";
                     break;
                 case 'voice':
-                    return '收到语音消息';
+                    $app->customer_service->message(new Voice($message['MediaId']))
+                        ->to($message['FromUserName'])
+                        ->send();
+                    return '收到语音消息: ' . $message['Recognition'];
                     break;
                 case 'video':
                     return '收到视频消息';

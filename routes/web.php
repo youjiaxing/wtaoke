@@ -17,3 +17,14 @@ Route::get('/', function () {
 
 
 Route::any('/wechat', 'WeChatController@serve');
+
+Route::group(['middleware' => ['web', 'wechat.oauth:snsapi_userinfo']], function () {
+    Route::get('/wechat/user', function () {
+        $user = session('wechat.oauth_user');
+        return "<pre>".json($user, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT)."</pre>";
+    })->name('wechat.user');
+});
+
+
+Route::get('/users', 'UsersController@index');
+Route::get('/users/{openId}', 'UsersController@show');
