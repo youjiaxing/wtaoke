@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Transformers\TbkWeChatTransform;
+use App\Services\TbkApi\TbkApiService;
 use EasyWeChat\Kernel\Exceptions\HttpException;
 use EasyWeChat\Kernel\Messages\Image;
 use EasyWeChat\Kernel\Messages\Voice;
@@ -10,6 +12,8 @@ use Overtrue\LaravelWeChat\Facade as WeChat;
 
 class WeChatController extends Controller
 {
+    protected $message;
+
     public function serve()
     {
         \Log::info('request arrived.'); # 注意：Log 为 Laravel 组件，所以它记的日志去 Laravel 日志看，而不是 EasyWeChat 日志
@@ -99,9 +103,16 @@ class WeChatController extends Controller
             你也可以回复一个普通字符串，比如：欢迎关注 overtrue.，
             此时 SDK 会对它进行一个封装，产生一个 EasyWeChat\Kernel\Messages\Text 类型的消息并在最后的 $app->server->serve(); 时生成对应的消息 XML 格式。
             */
+            $this->message = $message;
+
             $user = $app->user->get($message['FromUserName']);
-            \Log::debug("用户信息", $user);
-            \Log::debug("message", $message);
+//            \Log::debug("用户信息", $user);
+//            \Log::debug("message", $message);
+
+            $messageKey = $message['MsgId'].'_'.$message['CreateTime'];
+            if (!\Cache::add($messageKey, true, 1)) {
+                return;
+            }
 
             /*{"subscribe":1,"openid":"oAcol5xeiVHHzXmHwqxiI_HwBhKU","nickname":"嘉兴","sex":1,"language":"zh_CN","city":"泉州","province":"福建","country":"中国","headimgurl":"http://thirdwx.qlogo.cn/mmopen/sVOfnib3Ag7annGE0Qtn6IGxsDMWfaT5eIKrhD2UibpNGpNoPtX2DJkwPQzDa1vdQSKW8cmNMOYIlXFv7ZDs4cTI4miaPm3nne5/132","subscribe_time":1537845361,"remark":"","groupid":0,"tagid_list":[],"subscribe_scene":"ADD_SCENE_QR_CODE","qr_scene":0,"qr_scene_str":""}*/
             switch ($message['MsgType']) {
@@ -109,16 +120,20 @@ class WeChatController extends Controller
                     return '收到事件消息 Event: ' . $message['Event'];
                     break;
                 case 'text':
-                    switch ($message['Content']) {
-                        case 'link':
-                            return route('wechat.user', [], true);
-                            break;
+                    $handlers = [
+                        [$this, 'keywordReply'],
+                        [$this, 'tbkSearchByTitle'],
+                        [$this, 'tbkSearchByLink'],
+                    ];
 
-                        default:
-                            return '收到文字消息 Content: ' . $message['Content'];
-                            break;
+                    foreach ($handlers as $handler) {
+                        $resp = app()->call($handler);
+                        if ($resp !== false) {
+                            return $resp;
+                        }
                     }
 
+                    return "无法识别的口令: ".$message['Content'];
                     break;
                 case 'image':
                     return new Image($message['MediaId']);
@@ -151,5 +166,84 @@ class WeChatController extends Controller
         });
 
         return $app->server->serve();
+    }
+
+    /**
+     * 根据关键字回复
+     *
+     * @return bool|string
+     */
+    public function keywordReply()
+    {
+        switch ($this->message['Content']) {
+            case 'link':
+                return route('wechat.user', [], true);
+                break;
+
+            default:
+                return false;
+                break;
+        }
+    }
+
+    public function tbkSearchByLink(\EasyWeChat\OfficialAccount\Application $app)
+    {
+        return false;
+
+        $content = $this->message['Content'];
+        if (preg_match('~https?://m\.tb\.cn/\S+~', $content, $matches)) {
+            $url = $matches[0];
+
+        }
+    }
+
+    public function tbkSearchByTitle(\EasyWeChat\OfficialAccount\Application $app)
+    {
+        if (mb_strlen(trim($this->message['Content'])) <= 10) {
+            return false;
+        }
+
+        try {
+            $count = 0;
+            // 查询是否有对应商品
+            $tbkApi = app(TbkApiService::class);
+            $couponResp = $tbkApi->dgItemCouponGet(trim($this->message['Content']), "1", "100");
+            if (empty($couponResp->results)) {
+                return "没有符合的商品";
+            }
+
+            // 按销量排序, 并截取前N个
+            $tbk_coupon = $couponResp->results->tbk_coupon;
+            usort($tbk_coupon, function ($a, $b) {
+                return $a->volume < $b->volume;
+            });
+            $tbk_coupon = array_slice($tbk_coupon, 0, 1);
+
+            // 逐个生成淘口令
+            $items = [];
+            foreach ($tbk_coupon as $item) {
+                $tpwdResp = $tbkApi->tpwdCreate($item->coupon_click_url, "<内部优惠>", $item->pict_url);
+                $tkl = $tpwdResp->data->model;
+
+                $item->model = $tkl;
+                $items[] = $item;
+            }
+
+            return app(TbkWeChatTransform::class)->toTklText($item);
+
+//            foreach ($items as $item) {
+//                $app->customer_service
+//                    ->message(app(TbkWeChatTransform::class)->toTklText($item))
+//                    ->to($this->message['FromUserName'])
+//                    ->send();
+//            }
+//
+//            $count = count($items);
+//
+//            return "共为您找到 $count 个符合的商品";
+        } catch (\Exception $e) {
+            return "出现异常: ".$e->getMessage()."\n".$e->getTraceAsString();
+//            return false;
+        }
     }
 }

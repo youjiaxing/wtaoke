@@ -26,5 +26,6 @@ Route::group(['middleware' => ['web', 'wechat.oauth:snsapi_userinfo']], function
 });
 
 
-Route::get('/users', 'UsersController@index');
-Route::get('/users/{openId}', 'UsersController@show');
+Route::get('/test/item-get', 'TestController@itemGet');
+Route::get('/test/item-coupon-get', 'TestController@itemCouponGet');
+Route::get('/test/dynamic/{method}', 'TestController@dynamic');
