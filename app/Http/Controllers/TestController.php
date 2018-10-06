@@ -55,11 +55,14 @@ class TestController extends Controller
     public function testWeChat(Request $request)
     {
         $resp = $this->topClient->dgMaterialOptional($request['query']);
-        if (empty($resp)) {
+        if (empty($resp) || empty($resp->result_list)) {
             dump("没有找到符合的商品");
             return;
         }
+        dump($resp);
         dump(app(TbkDgMaterialOptionalTransofmer::class)->toWeChatText(($resp->result_list->map_data)[0]));
+
+
 //        $resp[0]
 //        foreach ($resp->results->tbk_coupon as $item) {
 //            dump($item);

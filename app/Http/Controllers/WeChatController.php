@@ -221,7 +221,7 @@ class WeChatController extends Controller
             // 查询是否有对应商品
             $tbkApi = app(TbkApiService::class);
             $materialResp = $tbkApi->dgMaterialOptional($query);
-            if (empty($materialResp)) {
+            if (empty($materialResp) || empty($materialResp->result_list)) {
                 return "没有找到符合的商品";
             }
 
