@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Transformers\TbkWeChatTransform;
+use App\Transformers\TbkDgMaterialOptionalTransofmer;
 use App\Services\TbkApi\TbkApiService;
-use EasyWeChat\Kernel\Exceptions\HttpException;
 use EasyWeChat\Kernel\Messages\Image;
 use EasyWeChat\Kernel\Messages\Voice;
-use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Overtrue\LaravelWeChat\Facade as WeChat;
 
 class WeChatController extends Controller
@@ -16,8 +15,6 @@ class WeChatController extends Controller
 
     public function serve()
     {
-        \Log::info('request arrived.'); # 注意：Log 为 Laravel 组件，所以它记的日志去 Laravel 日志看，而不是 EasyWeChat 日志
-
         /* @var \EasyWeChat\OfficialAccount\Application @app */
 //        $app = app('wechat.official_account');
 //        $app = \EasyWeChat::officialAccount();
@@ -105,11 +102,11 @@ class WeChatController extends Controller
             */
             $this->message = $message;
 
-            $user = $app->user->get($message['FromUserName']);
+//            $user = $app->user->get($message['FromUserName']);
 //            \Log::debug("用户信息", $user);
 //            \Log::debug("message", $message);
 
-            $messageKey = $message['MsgId'].'_'.$message['CreateTime'];
+            $messageKey = $message['MsgId'] . '_' . $message['CreateTime'];
             if (!\Cache::add($messageKey, true, 1)) {
                 return;
             }
@@ -120,6 +117,8 @@ class WeChatController extends Controller
                     return '收到事件消息 Event: ' . $message['Event'];
                     break;
                 case 'text':
+                    \Log::info('"text" request arrived: ' . $message['Content']); # 注意：Log 为 Laravel 组件，所以它记的日志去 Laravel 日志看，而不是 EasyWeChat 日志
+
                     $handlers = [
                         [$this, 'keywordReply'],
                         [$this, 'tbkSearchByTitle'],
@@ -133,7 +132,7 @@ class WeChatController extends Controller
                         }
                     }
 
-                    return "无法识别的口令: ".$message['Content'];
+                    return "无法识别的口令: " . $message['Content'];
                     break;
                 case 'image':
                     return new Image($message['MediaId']);
@@ -169,7 +168,7 @@ class WeChatController extends Controller
     }
 
     /**
-     * 根据关键字回复
+     * 根据关键字直接回复
      *
      * @return bool|string
      */
@@ -186,6 +185,13 @@ class WeChatController extends Controller
         }
     }
 
+    /**
+     * 解析链接, 并返回处理结果
+     *
+     * @param \EasyWeChat\OfficialAccount\Application $app
+     *
+     * @return bool
+     */
     public function tbkSearchByLink(\EasyWeChat\OfficialAccount\Application $app)
     {
         return false;
@@ -197,53 +203,93 @@ class WeChatController extends Controller
         }
     }
 
+    /**
+     * 根据查询关键字直接搜索淘宝商品
+     *
+     * @param \EasyWeChat\OfficialAccount\Application $app
+     *
+     * @return bool|\EasyWeChat\Kernel\Messages\Message|string
+     */
     public function tbkSearchByTitle(\EasyWeChat\OfficialAccount\Application $app)
     {
-        if (mb_strlen(trim($this->message['Content'])) <= 10) {
+        $query = trim($this->message['Content']);
+        if (mb_strlen($query) <= 10) {
             return false;
         }
 
         try {
-            $count = 0;
             // 查询是否有对应商品
             $tbkApi = app(TbkApiService::class);
-            $couponResp = $tbkApi->dgItemCouponGet(trim($this->message['Content']), "1", "100");
-            if (empty($couponResp->results)) {
-                return "没有符合的商品";
+            $materialResp = $tbkApi->dgMaterialOptional($query);
+            if (empty($materialResp)) {
+                return "没有找到符合的商品";
             }
 
-            // 按销量排序, 并截取前N个
-            $tbk_coupon = $couponResp->results->tbk_coupon;
-            usort($tbk_coupon, function ($a, $b) {
-                return $a->volume < $b->volume;
-            });
-            $tbk_coupon = array_slice($tbk_coupon, 0, 1);
+            $match = Arr::first($materialResp->result_list->map_data, function ($value) use ($query) {
+                return trim($value->title) == $query;
+            }, ($materialResp->result_list->map_data)[0]);
 
-            // 逐个生成淘口令
-            $items = [];
-            foreach ($tbk_coupon as $item) {
-                $tpwdResp = $tbkApi->tpwdCreate($item->coupon_click_url, "<内部优惠>", $item->pict_url);
-                $tkl = $tpwdResp->data->model;
 
-                $item->model = $tkl;
-                $items[] = $item;
-            }
-
-            return app(TbkWeChatTransform::class)->toTklText($item);
-
-//            foreach ($items as $item) {
-//                $app->customer_service
-//                    ->message(app(TbkWeChatTransform::class)->toTklText($item))
-//                    ->to($this->message['FromUserName'])
-//                    ->send();
-//            }
-//
-//            $count = count($items);
-//
-//            return "共为您找到 $count 个符合的商品";
+            return app(TbkDgMaterialOptionalTransofmer::class)->toWeChatText($match);
         } catch (\Exception $e) {
-            return "出现异常: ".$e->getMessage()."\n".$e->getTraceAsString();
-//            return false;
+            return "出现异常: " . $e->getMessage() . "\n" . $e->getTraceAsString();
         }
     }
+
+//    /**
+//     * 根据查询关键字直接搜索淘宝商品
+//     *
+//     * @param \EasyWeChat\OfficialAccount\Application $app
+//     *
+//     * @return bool|\EasyWeChat\Kernel\Messages\Message|string
+//     */
+//    public function tbkSearchByTitle(\EasyWeChat\OfficialAccount\Application $app)
+//    {
+//        if (mb_strlen(trim($this->message['Content'])) <= 10) {
+//            return false;
+//        }
+//
+//        try {
+//            $count = 0;
+//            // 查询是否有对应商品
+//            $tbkApi = app(TbkApiService::class);
+//            $couponResp = $tbkApi->dgItemCouponGet(trim($this->message['Content']), "1", "100");
+//            if (empty($couponResp->results)) {
+//                return "没有符合的商品";
+//            }
+//
+//            // 按销量排序, 并截取前N个
+//            $tbk_coupon = $couponResp->results->tbk_coupon;
+//            usort($tbk_coupon, function ($a, $b) {
+//                return $a->volume < $b->volume;
+//            });
+//            $tbk_coupon = array_slice($tbk_coupon, 0, 1);
+//
+//            // 逐个生成淘口令
+//            $items = [];
+//            foreach ($tbk_coupon as $item) {
+//                $tpwdResp = $tbkApi->tpwdCreate($item->coupon_click_url, "<内部优惠>", $item->pict_url);
+//                $tkl = $tpwdResp->data->model;
+//
+//                $item->model = $tkl;
+//                $items[] = $item;
+//            }
+//
+//            return app(TbkWeChatTransform::class)->toTklText($item);
+//
+////            foreach ($items as $item) {
+////                $app->customer_service
+////                    ->message(app(TbkWeChatTransform::class)->toTklText($item))
+////                    ->to($this->message['FromUserName'])
+////                    ->send();
+////            }
+////
+////            $count = count($items);
+////
+////            return "共为您找到 $count 个符合的商品";
+//        } catch (\Exception $e) {
+//            return "出现异常: ".$e->getMessage()."\n".$e->getTraceAsString();
+////            return false;
+//        }
+//    }
 }

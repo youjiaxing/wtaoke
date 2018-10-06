@@ -4,8 +4,10 @@
  * @author : 尤嘉兴
  * @version: 2018/9/29 14:12
  */
+
 namespace App\Services\TbkApi;
 
+use Illuminate\Support\Str;
 use TopClient\TopClient;
 use TopClient\request\TbkCouponGetRequest;
 use TopClient\request\TbkDgItemCouponGetRequest;
@@ -47,6 +49,7 @@ class TbkApiService
 
     /**
      * 淘宝客商品查询
+     *      - 不包含优惠券, 不转链
      *
      * @see http://open.taobao.com/api.htm?cid=1&docId=24515&docType=2
      *
@@ -57,9 +60,9 @@ class TbkApiService
     public function itemGet($query)
     {
         $req = new TbkItemGetRequest;
-        $req->setFields("num_iid,title,pict_url,reserve_price,zk_final_price,user_type,provcity,item_url");
+        $req->setFields("num_iid,title,pict_url,small_images,reserve_price,zk_final_price,user_type,provcity,item_url,nick,seller_id,volume");
         $req->setQ($query);
-        $req->setSort("tk_total_sales");
+        $req->setSort("total_sales_des");
         $req->setPlatform('2');
         $req->setPageNo('1'); // 实验后发现必需用字符串的数字才能正确分页
         $req->setPageSize('40');
@@ -68,6 +71,7 @@ class TbkApiService
 
     /**
      * 好券清单API【导购】
+     *      - 只能搜索到有优惠券的商品
      *
      * @see http://open.taobao.com/api.htm?cid=1&docId=29821&docType=2
      *
@@ -117,17 +121,23 @@ class TbkApiService
      */
     public function tpwdCreate($couponUrl, $text = null, $logoUrl = null)
     {
+        if (Str::startsWith($couponUrl, "//")) {
+            $couponUrl = "https:".$couponUrl;
+        }
+
         $req = new TbkTpwdCreateRequest;
 //        $req->setUserId("123");
-        $req->setText($text);
+        $req->setText($text ?: "<优惠购买通道>");
         $req->setUrl($couponUrl);
-        $req->setLogo($logoUrl);
+        $req->setLogo($logoUrl ?: "https://uland.taobao.com/");
         $req->setExt("{}");
         return $resp = $this->topClient->execute($req);
     }
 
     /**
      * 通用物料搜索API（导购）
+     *      - 若返回值 "coupon_id" 不为空, 则表示有优惠券
+     *      - 能生成转链(该链接无法直接用于生成淘口令)
      *
      * @see http://open.taobao.com/api.htm?cid=1&docId=35896&docType=2
      *
@@ -136,7 +146,7 @@ class TbkApiService
      *
      * @return mixed|\SimpleXMLElement|\TopClient\ResultSet
      */
-    public function dgMaterialOptional($query)
+    public function dgMaterialOptional($query, $pageNo = "1", $pageSize = "20", $sort = "total_sales_des")
     {
         $req = new \TopClient\request\TbkDgMaterialOptionalRequest();
 //        $req = new \App\Services\TbkApi\TbkDgMaterialOptionalRequest();
@@ -173,8 +183,8 @@ class TbkApiService
     }
 
 
-    protected function execute($request)
+    public function execute($request, $session = null, $bestUrl = null)
     {
-        return $this->topClient->execute($request);
+        return $this->topClient->execute($request, $session, $bestUrl);
     }
 }

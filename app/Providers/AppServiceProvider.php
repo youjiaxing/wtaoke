@@ -3,7 +3,6 @@
 namespace App\Providers;
 
 use App\Services\TbkApi\TbkApiService;
-use App\Transformers\TbkWeChatTransform;
 use Carbon\Carbon;
 use Illuminate\Support\ServiceProvider;
 
@@ -33,7 +32,5 @@ class AppServiceProvider extends ServiceProvider
             $client->setAdzonId(config('taobaotop.connections.'.config('taobaotop.default').'.adzoneId'));
             return $client;
         });
-
-        $this->app->singleton(TbkWeChatTransform::class);
     }
 }
