@@ -137,7 +137,10 @@ class SyncTbkOrder extends Command
                 $startTime = date('Y-m-d H:i:s', strtotime($startTime) + $this->span);
                 $pageNo = 1;
             }
-            sleep(config('taobaotop.order_get.interval'));
+
+            if (strtotime($startTime) < strtotime($endTime)) {
+                sleep(config('taobaotop.order_get.interval'));
+            }
         }
 
         if ($this->notify) {
@@ -222,6 +225,7 @@ class SyncTbkOrder extends Command
                 if ($user) {
                     $tbkOrder->user_id = $user->id;
                 }
+                $tbkOrder['need_notify'] = true;
                 $tbkOrder->save();
                 $new++;
             }

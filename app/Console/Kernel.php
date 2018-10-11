@@ -26,11 +26,13 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         if (\App::environment('prod')) {
-            $schedule->command('tbk:sync-order --notify')
+//            $schedule->command('tbk:sync-order --notify')
+            $schedule->command('tbk:sync-order')
                 ->everyMinute()
-//                ->after(function () {
-//                    \Artisan::call('tbk:notify-order');
-//                })
+                ->after(function () {
+                    \Artisan::call('tbk:settle-order');
+                    \Artisan::call('tbk:notify-order');
+                })
                 ->withoutOverlapping(15);
 //                ->appendOutputTo(storage_path("logs" . DIRECTORY_SEPARATOR . "timer.log"));
         }

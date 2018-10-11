@@ -14,7 +14,7 @@ class AddNotifyToTbkOrdersTable extends Migration
     public function up()
     {
         Schema::table("tbk_orders", function (Blueprint $table) {
-            $table->boolean('need_notify')->default(true)->index();
+            $table->boolean('need_notify')->default(true)->index()->after('user_id');
         });
     }
 

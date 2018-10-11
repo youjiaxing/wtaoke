@@ -38,4 +38,9 @@ return [
 
         'interval' => 3,
     ],
+
+    // 阿里的服务费
+    "service_fee_rate" => 0.1,
+    // 用户佣金比率
+    "user_share_rate" => 0.9,
 ];

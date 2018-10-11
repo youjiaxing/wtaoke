@@ -6,6 +6,7 @@ use App\Handlers\WeChatNotify;
 use App\Models\TbkOrder;
 use App\Transformers\TbkOrderTransformer;
 use App\Console\Command;
+use Carbon\Carbon;
 
 class NotifyTbkOrder extends Command
 {
@@ -40,21 +41,21 @@ class NotifyTbkOrder extends Command
      */
     public function handle()
     {
-        $startTime = $this->argument('start');
-        $endTime = $this->argument('end');
-        if (is_null($startTime)) {
-            $startTime = date('Y-m-d H:i:00', time() - 1200);
-        } elseif (is_null($endTime)) {
-            $startTime = date('Y-m-d H:i:s', strtotime($startTime));
-        }
-
-        if (is_null($endTime)) {
-            $endTime = date('Y-m-d H:i:00', strtotime($startTime) - 1200);
-        }
-
-        $this->info("开始遍历 $startTime 以后的订单");
+//        $startTime = $this->argument('start');
+//        $endTime = $this->argument('end');
+//        if (is_null($startTime)) {
+//            $startTime = date('Y-m-d H:i:00', time() - 1200);
+//        } elseif (is_null($endTime)) {
+//            $startTime = date('Y-m-d H:i:s', strtotime($startTime));
+//        }
+//
+//        if (is_null($endTime)) {
+//            $endTime = date('Y-m-d H:i:00', strtotime($startTime) - 1200);
+//        }
+//
+//        $this->info("开始遍历 $startTime 以后的订单");
         $count = 0;
-        $totalCount = TbkOrder::where('need_notify', true)->where('create_time', '>=', $startTime)->count();
+        $totalCount = TbkOrder::where('need_notify', true)->count();
         $this->comment("符合条件的订单共 $totalCount 条");
 
         if ($totalCount == 0) {
@@ -63,7 +64,6 @@ class NotifyTbkOrder extends Command
 
         // 同步到新订单通知用户
         TbkOrder::where('need_notify', true)
-            ->where('create_time', '>=', $startTime)
             ->chunk(
                 100,
                 function ($tbkOrders) use (&$count) {
@@ -116,6 +116,8 @@ class NotifyTbkOrder extends Command
      * 同步到新订单
      *
      * @param TbkOrder $tbkOrder
+     *
+     * @throws \Exception
      */
     protected function notifyNewOrder(TbkOrder $tbkOrder)
     {
@@ -128,7 +130,7 @@ class NotifyTbkOrder extends Command
         $this->comment("通知用户 {$user->name} 有一笔新的订单 {$tbkOrder['trade_id']}  {$tbkOrder['item_title']}");
         app(WeChatNotify::class)->notifyUser(
             $user->weixin_openid,
-            app(TbkOrderTransformer::class)->toWeChatText($tbkOrder)
+            app(TbkOrderTransformer::class)->newOrderWithText($tbkOrder)
         );
     }
 
@@ -137,8 +139,23 @@ class NotifyTbkOrder extends Command
         /*
          * 需先结算给用户, 再来通知用户
          * 注意避免骗佣金的情况
-         *      1. 确认收货N天后才结算给用户 (N=8)
+         *      - 确认收货N天后才结算给用户 (N=8)
          */
+
+        $user = $tbkOrder->user;
+
+        if ($tbkOrder->is_rebate) {
+            // 通知用户钱已经到了
+            app(WeChatNotify::class)->notifyUser(
+                $user->weixin_openid,
+                app(TbkOrderTransformer::class)->newRebateWithText($tbkOrder)
+            );
+            $this->comment("通知用户 {$user->name} 返利 {$tbkOrder['rebate_fee']} 已到账 {$tbkOrder['trade_id']}  {$tbkOrder['item_title']}");
+            return;
+        } else {
+            // 还未返利, 不用通知
+            return;
+        }
 
         $this->comment("通知用户 notifyNewSettle");
     }
