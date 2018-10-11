@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\TbkAdzone;
+use App\Models\User;
 use App\Transformers\TbkDgMaterialOptionalTransofmer;
 use App\Services\TbkApi\TbkApiService;
+use Carbon\Carbon;
 use EasyWeChat\Kernel\Messages\Image;
+use EasyWeChat\Kernel\Messages\Text;
 use EasyWeChat\Kernel\Messages\Voice;
 use Illuminate\Support\Arr;
-use Overtrue\LaravelWeChat\Facade as WeChat;
+//use Overtrue\LaravelWeChat\Facade as WeChat;
+//use WeChat;
 
 class WeChatController extends Controller
 {
@@ -18,7 +23,8 @@ class WeChatController extends Controller
         /* @var \EasyWeChat\OfficialAccount\Application @app */
 //        $app = app('wechat.official_account');
 //        $app = \EasyWeChat::officialAccount();
-        $app = WeChat::officialAccount();
+//        $app = WeChat::officialAccount();
+        $app = \EasyWeChat::officialAccount();
 
         $app->server->push(function ($message) use ($app) {
             /*
@@ -100,18 +106,65 @@ class WeChatController extends Controller
             你也可以回复一个普通字符串，比如：欢迎关注 overtrue.，
             此时 SDK 会对它进行一个封装，产生一个 EasyWeChat\Kernel\Messages\Text 类型的消息并在最后的 $app->server->serve(); 时生成对应的消息 XML 格式。
             */
-            $this->message = $message;
-
-//            $user = $app->user->get($message['FromUserName']);
-//            \Log::debug("用户信息", $user);
-//            \Log::debug("message", $message);
-
             $messageKey = $message['MsgId'] . '_' . $message['CreateTime'];
             if (!\Cache::add($messageKey, true, 1)) {
                 return;
             }
 
+            $openId = $message['FromUserName'];
+            $user = User::where('weixin_openid', $openId)->first();
+            if (!$user) {
+                // @see https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1421140839
+                $userData = $app->user->get($openId);
+
+                $user = User::create([
+                    'name' => $userData['nickname'],
+                    'weixin_openid' => $userData['openid'],
+                    'avatar' => $userData['headimgurl'],
+                ]);
+
+                $tbkAdzones = TbkAdzone::where('user_id', $user->id)->first();
+                $tbkAdzoneId = null;
+                if (!$tbkAdzones) {
+                    TbkAdzone::where('user_id', 0)->limit(1)->update(['user_id' => $user->id]);
+                    $tbkAdzones = TbkAdzone::where('user_id', $user->id)->first();
+
+                }
+
+                if ($tbkAdzones) {
+                    // 分配专属推广位id
+                    $tbkAdzoneId = $tbkAdzones->tbk_adzone_id;
+                    $user->tbk_adzone_id = $tbkAdzoneId;
+                    $user->tbk_adzone_last_use = Carbon::now();
+                    $user->save();
+
+                    //DEBUG
+                    if (config('app.debug')) {
+                        $app->customer_service->message(new Text("已为您分配专属推广位 $tbkAdzoneId"))
+                        ->to($openId)
+                        ->send();
+                    }
+
+                }
+            } else {
+                $tbkAdzoneId = $user->tbk_adzone_id;
+            }
+
+            // 使用通用推广位id, 无法自动跟踪订单
+            $tbkAdzoneId = empty($tbkAdzoneId) ? config('taobaotop.connections.' . config('taobaotop.default') . '.adzoneId') : $tbkAdzoneId;
+
+            app(TbkApiService::class)->setAdzonId($tbkAdzoneId);
+
+
+            $this->message = $message;
+
+//            \Log::info("收到一条来自 {$message['FromUserName']} 的消息");
+
+//            $user = $app->user->get($message['FromUserName']);
+//            \Log::debug("用户信息", $user);
+//            \Log::debug("message", $message);
             /*{"subscribe":1,"openid":"oAcol5xeiVHHzXmHwqxiI_HwBhKU","nickname":"嘉兴","sex":1,"language":"zh_CN","city":"泉州","province":"福建","country":"中国","headimgurl":"http://thirdwx.qlogo.cn/mmopen/sVOfnib3Ag7annGE0Qtn6IGxsDMWfaT5eIKrhD2UibpNGpNoPtX2DJkwPQzDa1vdQSKW8cmNMOYIlXFv7ZDs4cTI4miaPm3nne5/132","subscribe_time":1537845361,"remark":"","groupid":0,"tagid_list":[],"subscribe_scene":"ADD_SCENE_QR_CODE","qr_scene":0,"qr_scene_str":""}*/
+
             switch ($message['MsgType']) {
                 case 'event':
                     return '收到事件消息 Event: ' . $message['Event'];
@@ -179,6 +232,11 @@ class WeChatController extends Controller
                 return route('wechat.user', [], true);
                 break;
 
+            case 'exception':
+                $obj = new \stdClass();
+                return $obj->dsf->dsffdssfda;
+                break;
+
             default:
                 return false;
                 break;
@@ -196,11 +254,11 @@ class WeChatController extends Controller
     {
         return false;
 
-        $content = $this->message['Content'];
-        if (preg_match('~https?://m\.tb\.cn/\S+~', $content, $matches)) {
-            $url = $matches[0];
-
-        }
+//        $content = $this->message['Content'];
+//        if (preg_match('~https?://m\.tb\.cn/\S+~', $content, $matches)) {
+//            $url = $matches[0];
+//
+//        }
     }
 
     /**
@@ -237,7 +295,7 @@ class WeChatController extends Controller
     }
 
 //    /**
-//     * 根据查询关键字直接搜索淘宝商品
+//     * 根据查询关键字直接搜索淘宝商品7
 //     *
 //     * @param \EasyWeChat\OfficialAccount\Application $app
 //     *

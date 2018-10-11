@@ -149,7 +149,6 @@ class TbkApiService
     public function dgMaterialOptional($query, $pageNo = "1", $pageSize = "20", $sort = "total_sales_des")
     {
         $req = new \TopClient\request\TbkDgMaterialOptionalRequest();
-//        $req = new \App\Services\TbkApi\TbkDgMaterialOptionalRequest();
 //        $req->setStartDsr("10");
         $req->setPageSize("20");
         $req->setPageNo("1");
