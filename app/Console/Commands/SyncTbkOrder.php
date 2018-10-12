@@ -123,7 +123,7 @@ class SyncTbkOrder extends Command
                 $pageNo = 1;
                 $count = count($response);
                 if ($count > 0) {
-                    $this->comment("成功获取 $count 条订单数据, 准备同步到数据库.");
+                    $this->debug("成功获取 $count 条订单数据, 准备同步到数据库.");
                 } else {
                     $this->debug("没有新的订单数据.");
                 }
@@ -231,6 +231,9 @@ class SyncTbkOrder extends Command
             }
         }
 
-        $this->comment("订单同步, 共处理 $total 条, 其中新增 $new 条, 更新 $update 条, 忽略 $ignore 条.");
+        $this->line(
+            "订单同步, 共处理 $total 条, 其中新增 $new 条, 更新 $update 条, 忽略已存在的 $ignore 条.",
+            $new + $update > 0 ? "comment" : "debug"
+        );
     }
 }
