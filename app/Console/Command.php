@@ -48,13 +48,16 @@ class Command extends \Illuminate\Console\Command
      */
     public function line($string, $style = null, $verbosity = null)
     {
-        parent::line($string, $style, $verbosity);
+        parent::line($string, $style == 'debug' ? 'info' : $style, $verbosity);
 
         if (!$this->log) {
             return;
         }
 
         switch ($style) {
+            case 'debug':
+                $this->getLogger()->debug($string);
+                break;
 //            case 'info':
 //                \Log::info($string);
 //                break;
@@ -75,5 +78,10 @@ class Command extends \Illuminate\Console\Command
                 $this->getLogger()->info($string);
                 break;
         }
+    }
+
+    public function debug($string, $verbosity = null)
+    {
+        $this->line($string, 'debug', $verbosity);
     }
 }

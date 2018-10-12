@@ -50,7 +50,7 @@ class SettleTbkOrder extends Command
             ->where('is_rebate', false)
             ->where('user_id', '<>', 0)
             ->count();
-        $this->comment("等待结算的订单共 $totalCount 条");
+        $this->debug("等待结算的订单共 $totalCount 条");
 
         if ($totalCount == 0) {
             return;

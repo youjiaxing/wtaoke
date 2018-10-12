@@ -15,7 +15,7 @@ class NotifyTbkOrder extends Command
      *
      * @var string
      */
-    protected $signature = 'tbk:notify-order {start?} {end?}';
+    protected $signature = 'tbk:notify-order';
 
     /**
      * The console command description.
@@ -41,22 +41,9 @@ class NotifyTbkOrder extends Command
      */
     public function handle()
     {
-//        $startTime = $this->argument('start');
-//        $endTime = $this->argument('end');
-//        if (is_null($startTime)) {
-//            $startTime = date('Y-m-d H:i:00', time() - 1200);
-//        } elseif (is_null($endTime)) {
-//            $startTime = date('Y-m-d H:i:s', strtotime($startTime));
-//        }
-//
-//        if (is_null($endTime)) {
-//            $endTime = date('Y-m-d H:i:00', strtotime($startTime) - 1200);
-//        }
-//
-//        $this->info("开始遍历 $startTime 以后的订单");
         $count = 0;
         $totalCount = TbkOrder::where('need_notify', true)->count();
-        $this->comment("符合条件的订单共 $totalCount 条");
+        $this->debug("等待通知的订单共 $totalCount 条");
 
         if ($totalCount == 0) {
             return;
@@ -139,7 +126,7 @@ class NotifyTbkOrder extends Command
         /*
          * 需先结算给用户, 再来通知用户
          * 注意避免骗佣金的情况
-         *      - 确认收货N天后才结算给用户 (N=8)
+         *      -  确认收货N天后才结算给用户 (N=8)
          */
 
         $user = $tbkOrder->user;

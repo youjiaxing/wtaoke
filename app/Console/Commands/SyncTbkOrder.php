@@ -96,7 +96,7 @@ class SyncTbkOrder extends Command
             }
         }
 
-        $this->info(str_pad('-', 40, '-'));
+        $this->debug(str_pad('-', 40, '-'));
 
         $this->manager = $manager;
         $this->pageSize = 100;
@@ -105,7 +105,7 @@ class SyncTbkOrder extends Command
         $pageNo = 1;
         $consecutiveFail = 0;
         while (strtotime($startTime) < strtotime($endTime)) {
-            $this->info("查询订单 $startTime - $endTime, 当前第 $pageNo 页");
+            $this->debug("查询订单 $startTime - $endTime, 当前第 $pageNo 页");
             $response = $this->fetchOrder($req, $startTime, $pageNo);
 
             // 获取数据失败
@@ -114,7 +114,7 @@ class SyncTbkOrder extends Command
                     $this->warn("订单连续查询失败达到 {$consecutiveFail} 次, 本次查询中止!");
                     break;
                 } else {
-                    $this->warn("订单连续查询失败 {$consecutiveFail} 次, 准备开始下一次尝试");
+                    $this->warn("订单查询" . ($consecutiveFail > 1 ? "连续" : "") . "失败 {$consecutiveFail} 次, 准备开始下一次尝试");
                     sleep(config('taobaotop.order_get.fail_retry.interval'));
                 }
                 continue;
@@ -125,7 +125,7 @@ class SyncTbkOrder extends Command
                 if ($count > 0) {
                     $this->comment("成功获取 $count 条订单数据, 准备同步到数据库.");
                 } else {
-                    $this->info("没有新的订单数据.");
+                    $this->debug("没有新的订单数据.");
                 }
                 $this->syncToDb($response);
             }
