@@ -39,20 +39,23 @@ class KoussApi extends Api
         ];
     }
 
-
     public function scOrderGet(TbkScOrderGetRequest $request)
     {
         try {
             $data = array_merge($request->getApiParas(), $this->getParams());
             $response = $this->httpPostJson("orderGet", $data);
+            $this->lastVisit = microtime(true);
 
             $stringBody = (string)$response->getBody();
             $content = json_decode($stringBody, true, 512, JSON_BIGINT_AS_STRING);
+
             if (empty($content['tbk_sc_order_get_response'])) {
-                \Log::warning(__METHOD__ . " 结果失败", ['resp' => $content, 'req' => $data]);
+                \Log::warning(__METHOD__ . " 结果失败: $stringBody");
                 return false;
             }
-            return isset($content['tbk_sc_order_get_response']['results']['n_tbk_order']) ? $content['tbk_sc_order_get_response']['results']['n_tbk_order'] : [];
+            return isset($content['tbk_sc_order_get_response']['results']['n_tbk_order']) ?
+                $content['tbk_sc_order_get_response']['results']['n_tbk_order'] :
+                [];
         } catch (GuzzleException $e) {
             \Log::warning(__METHOD__ . " 请求失败: " . $e->getMessage());
             return false;

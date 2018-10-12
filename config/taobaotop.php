@@ -23,9 +23,16 @@ return [
     'adzoneId' => env('TAOBAO_ADZON_ID', null),
 
     'third' => [
+        // Kouss https://www.yuque.com/kouss/taoke/ngffqg
         'kouss' => [
             'session' => env('KOUSS_SESSION', ''),
             'debug' => env('KOUSS_DEBUG', true),
+        ],
+
+        // 喵有券 http://open.21ds.cn/index/index/openapi/id/4.shtml?ptype=1
+        'miao_you_quan' => [
+            'app_key' => env('MIAO_YOU_QUAN_APP_KEY'),
+            'tb_name' => env('MIAO_YOU_QUAN_TB_NAME'),
         ]
     ],
 

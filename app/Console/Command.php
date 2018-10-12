@@ -24,10 +24,13 @@ class Command extends \Illuminate\Console\Command
     protected function getLogger()
     {
         if (!$this->logger instanceof Writer) {
-            $this->logger = new Writer(
-                new \Monolog\Logger(basename(str_replace('\\', '/', get_called_class())))
-            );
+            $this->logger = app('log');
+            $this->logger->getMonolog()->popHandler();
 
+//            $this->logger = new Writer(
+//                new \Monolog\Logger(basename(str_replace('\\', '/', get_called_class())))
+//            );
+//
             $this->logger->useFiles(
                 storage_path('logs/command.log'),
                 config('app.log_level')

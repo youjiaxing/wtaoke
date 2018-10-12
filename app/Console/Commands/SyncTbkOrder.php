@@ -107,6 +107,7 @@ class SyncTbkOrder extends Command
         while (strtotime($startTime) < strtotime($endTime)) {
             $this->debug("查询订单 $startTime - $endTime, 当前第 $pageNo 页");
             $response = $this->fetchOrder($req, $startTime, $pageNo);
+            dump($response);
 
             // 获取数据失败
             if ($response === false) {
@@ -188,16 +189,27 @@ class SyncTbkOrder extends Command
         $new = 0;
         $update = 0;
         $ignore = 0;
+        $error = 0;
         $total = count($response);
 
+        $validateRules = [
+            'trade_id' => 'required',
+            'tk_status' => 'required',
+        ];
+
         foreach ($response as $item) {
-//            dump($item);
+            dump($item);
+            $validator = validator($item, $validateRules);
+            if ($validator->fails()) {
+                $this->info("忽略异常订单, 异常:" . $validator->errors()->first() . "  订单:" . json($item));
+            }
+
             // 通过 "trade_id" 字段查找相同记录
             $tradeId = (string)$item['trade_id'];
-            if (empty($tradeId)) {
-                $this->info("忽略异常数据 " . json($item));
-                continue;
-            }
+//            if (empty($tradeId) || empty($item['tk_status'])) {
+//                $this->info("忽略异常数据 " . json($item));
+//                continue;
+//            }
 
             $tbkOrder = TbkOrder::firstOrNew(['trade_id' => $tradeId], $item);
             // 已存在记录
@@ -226,14 +238,22 @@ class SyncTbkOrder extends Command
                     $tbkOrder->user_id = $user->id;
                 }
                 $tbkOrder['need_notify'] = true;
-                $tbkOrder->save();
+
+                try {
+                    $tbkOrder->save();
+                } catch (\Exception $e) {
+                    $this->error("新订单保存失败: " . $e->getMessage() . " 订单数据: " . json($item));
+                    $error++;
+                    continue;
+                }
+
                 $new++;
             }
         }
 
         $this->line(
-            "订单同步, 共处理 $total 条, 其中新增 $new 条, 更新 $update 条, 忽略已存在的 $ignore 条.",
-            $new + $update > 0 ? "comment" : "debug"
+            "订单同步 $total 条, 其中新增 $new 条, 更新 $update 条, 错误 $error 条, 忽略已存在的 $ignore 条.",
+            $new + $update + $error > 0 ? "comment" : "debug"
         );
     }
 }

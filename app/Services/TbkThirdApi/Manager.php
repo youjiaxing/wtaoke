@@ -64,22 +64,26 @@ class Manager
      */
     public function __call($name, $arguments)
     {
-        if (method_exists(Api::class, $name)) {
+        if (method_exists(Api::class, $name) && $name != 'getName') {
             if (empty($this->getApis())) {
                 \Log::warning(__CLASS__." 未注册任何第三方api服务!");
                 return false;
             }
 
+            $first = true;
             foreach ($this->getApis() as $k => $api) {
                 if (!$api instanceof Api) {
                     $api = $this->apis[$k] = app($api);
                 }
                 $response = call_user_func_array([$api, $name], $arguments);
 //                $response = \App::call([$api, $name], $arguments);
-
                 if ($response !== false) {
+                    if (!$first) {
+                        \Log::info("使用备用接口 " . $api->getName() . "::{$name} 成功.");
+                    }
                     break;
                 }
+                $first = false;
             }
 
             return $response;

@@ -6,6 +6,7 @@ use App\Models\TbkOrder;
 use App\Observers\TbkOrderObserver;
 use App\Services\TbkApi\TbkApiService;
 use App\Services\TbkThirdApi\Api\KoussApi;
+use App\Services\TbkThirdApi\Api\MiaoYouQuanApi;
 use App\Services\TbkThirdApi\Manager;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Schema;
@@ -51,6 +52,14 @@ class AppServiceProvider extends ServiceProvider
                     config('taobaotop.third.kouss.debug')
                 )
             );
+
+            $manager->pushApi(
+                new MiaoYouQuanApi(
+                    config('taobaotop.third.miao_you_quan.app_key'),
+                    config('taobaotop.third.miao_you_quan.tb_name')
+                )
+            );
+
             return $manager;
         });
         $this->app->alias(Manager::class, "tbk.third.manager");

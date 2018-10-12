@@ -11,6 +11,11 @@ use TopClient\request\TbkScOrderGetRequest;
 
 abstract class Api
 {
+    public function getName()
+    {
+        return basename(str_replace('\\', '/', get_called_class()));
+    }
+
     /**
      * @param TbkScOrderGetRequest $request
      *
