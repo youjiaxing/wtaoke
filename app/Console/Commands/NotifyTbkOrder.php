@@ -115,10 +115,11 @@ class NotifyTbkOrder extends Command
 
         $user = $tbkOrder->user;
         $this->comment("通知用户 {$user->name} 有一笔新的订单 {$tbkOrder['trade_id']}  {$tbkOrder['item_title']}");
-        app(WeChatNotify::class)->notifyUser(
-            $user->weixin_openid,
-            app(TbkOrderTransformer::class)->newOrderWithText($tbkOrder)
-        );
+//        app(WeChatNotify::class)->notifyUser(
+//            $user->weixin_openid,
+//            app(TbkOrderTransformer::class)->newOrderWithText($tbkOrder)
+//        );
+        app(WeChatNotify::class)->notifyNewOrder($user->weixin_openid, $tbkOrder);
     }
 
     protected function notifyNewSettle(TbkOrder $tbkOrder)
@@ -133,10 +134,14 @@ class NotifyTbkOrder extends Command
 
         if ($tbkOrder->is_rebate) {
             // 通知用户钱已经到了
-            app(WeChatNotify::class)->notifyUser(
-                $user->weixin_openid,
-                app(TbkOrderTransformer::class)->newRebateWithText($tbkOrder)
-            );
+//            app(WeChatNotify::class)->notifyUser(
+//                $user->weixin_openid,
+//                app(TbkOrderTransformer::class)->newRebateWithText($tbkOrder)
+//            );
+            app(WeChatNotify::class)->notifySettleOrder($user->weixin_openid, $tbkOrder);
+
+
+
             $this->comment("通知用户 {$user->name} 返利 {$tbkOrder['rebate_fee']} 已到账 {$tbkOrder['trade_id']}  {$tbkOrder['item_title']}");
             return;
         } else {

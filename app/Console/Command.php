@@ -8,6 +8,8 @@
 namespace App\Console;
 
 use Illuminate\Log\Writer;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 
 class Command extends \Illuminate\Console\Command
 {
@@ -24,20 +26,33 @@ class Command extends \Illuminate\Console\Command
     protected function getLogger()
     {
         if (!$this->logger instanceof Writer) {
-            $this->logger = app('log');
-            $this->logger->getMonolog()->popHandler();
-
-//            $this->logger = new Writer(
-//                new \Monolog\Logger(basename(str_replace('\\', '/', get_called_class())))
-//            );
+//            $this->logger = app('log');
+//            $this->logger->getMonolog()->popHandler();
 //
+//            $this->logger->useFiles(
+//                storage_path('logs/command.log'),
+//                config('app.log_level')
+//            );
+
+
+            $this->logger = new Writer(
+                new \Monolog\Logger(basename(str_replace('\\', '/', get_called_class())))
+            );
+
             $this->logger->useFiles(
                 storage_path('logs/command.log'),
                 config('app.log_level')
             );
+            app()->instance('log', $this->logger);
         }
 
         return $this->logger;
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output)
+    {
+        $this->getLogger();
+        return parent::execute($input, $output);
     }
 
     /**

@@ -20,8 +20,10 @@ return [
         ]
     ],
 
+    // 备用推广位
     'adzoneId' => env('TAOBAO_ADZON_ID', null),
 
+    // 第三方订单查询服务
     'third' => [
         // Kouss https://www.yuque.com/kouss/taoke/ngffqg
         'kouss' => [
@@ -35,6 +37,9 @@ return [
             'tb_name' => env('MIAO_YOU_QUAN_TB_NAME'),
         ]
     ],
+
+    // 消息通知方式
+    'notify_type' => 'template',    // 'template', 'text'
 
     // 单次查询失败重试次数
     'order_get' => [

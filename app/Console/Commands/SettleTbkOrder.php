@@ -8,6 +8,7 @@
 namespace App\Console\Commands;
 
 use App\Console\Command;
+use App\Handlers\TbkRebateHandler;
 use App\Models\TbkOrder;
 use App\Models\User;
 use Carbon\Carbon;
@@ -43,7 +44,7 @@ class SettleTbkOrder extends Command
      *
      * @return mixed
      */
-    public function handle()
+    public function handle(TbkRebateHandler $tbkRebateHandler)
     {
         $count = 0;
         $totalCount = TbkOrder::where('tk_status', 3)
@@ -62,7 +63,7 @@ class SettleTbkOrder extends Command
             ->where('user_id', '<>', 0)
             ->chunk(
                 100,
-                function ($tbkOrders) use (&$count) {
+                function ($tbkOrders) use (&$count, $tbkRebateHandler) {
                     foreach ($tbkOrders as $tbkOrder) {
                         $count++;
 
@@ -76,7 +77,7 @@ class SettleTbkOrder extends Command
                             continue;
                         }
 
-                        $rebate = $this->getRebateFee($tbkOrder);
+                        $rebate = $tbkRebateHandler->getRebate($tbkOrder, false);
                         if ($rebate < 0.01) {
                             $tbkOrder->need_notify = false;
                             $tbkOrder->is_rebate = true;
@@ -99,14 +100,5 @@ class SettleTbkOrder extends Command
                     }
                 });
         $this->line("本次共遍历 $count 条订单数据.", $count > 0 ? "comment" : "info");
-    }
-
-    protected function getRebateFee(TbkOrder $tbkOrder)
-    {
-        $rebate = $tbkOrder->total_commission_fee > 0.01 ?
-            $tbkOrder->total_commission_fee * config('taobaotop.user_share_rate', 0.5) :
-            0;
-
-        return round($rebate, 2, PHP_ROUND_HALF_DOWN);
     }
 }

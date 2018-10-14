@@ -105,7 +105,7 @@ class SyncTbkOrder extends Command
         $pageNo = 1;
         $consecutiveFail = 0;
         while (strtotime($startTime) < strtotime($endTime)) {
-            $this->debug("查询订单 $startTime - $endTime, 当前第 $pageNo 页");
+            $this->debug("查询订单" . ($this->settle ? "(结算)" : "") ." $startTime - $endTime, 当前第 $pageNo 页");
             $response = $this->fetchOrder($req, $startTime, $pageNo);
             dump($response);
 
