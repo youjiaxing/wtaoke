@@ -11,12 +11,21 @@ use EasyWeChat\Kernel\Messages\Image;
 use EasyWeChat\Kernel\Messages\Text;
 use EasyWeChat\Kernel\Messages\Voice;
 use Illuminate\Support\Arr;
+
 //use Overtrue\LaravelWeChat\Facade as WeChat;
 //use WeChat;
 
 class WeChatController extends Controller
 {
     protected $message;
+
+    protected $menuText = <<< EOF
+----------------------
+0.菜单      显示菜单
+1.余额      查询账户当前余额
+----------------------
+输入淘宝商品名称(完整商品名)自动搜索优惠券
+EOF;
 
     public function serve()
     {
@@ -106,7 +115,8 @@ class WeChatController extends Controller
             你也可以回复一个普通字符串，比如：欢迎关注 overtrue.，
             此时 SDK 会对它进行一个封装，产生一个 EasyWeChat\Kernel\Messages\Text 类型的消息并在最后的 $app->server->serve(); 时生成对应的消息 XML 格式。
             */
-            $messageKey = $message['MsgId'] . '_' . $message['CreateTime'];
+            \Log::debug('消息', $message);
+            $messageKey = $message['FromUserName'] . "_" . (isset($message['MsgId']) ?? '') . '_' . $message['CreateTime'];
             if (!\Cache::add($messageKey, true, 1)) {
                 return;
             }
@@ -141,8 +151,8 @@ class WeChatController extends Controller
                     //DEBUG
                     if (config('app.debug')) {
                         $app->customer_service->message(new Text("已为您分配专属推广位 $tbkAdzoneId"))
-                        ->to($openId)
-                        ->send();
+                            ->to($openId)
+                            ->send();
                     }
 
                 }
@@ -167,6 +177,13 @@ class WeChatController extends Controller
 
             switch ($message['MsgType']) {
                 case 'event':
+                    switch ($message['Event']) {
+                        case 'subscribe':
+                            return $this->menuText;
+                            break;
+                    }
+                    return $this->menuText;
+
                     return '收到事件消息 Event: ' . $message['Event'];
                     break;
                 case 'text':
@@ -184,7 +201,7 @@ class WeChatController extends Controller
                             return $resp;
                         }
                     }
-
+                    return $this->menuText;
                     return "无法识别的口令: " . $message['Content'];
                     break;
                 case 'image':
@@ -227,9 +244,33 @@ class WeChatController extends Controller
      */
     public function keywordReply()
     {
+
         switch ($this->message['Content']) {
+            case '菜单':
+            case 'menu':
+            case '0':
+                return $this->menuText;
+                break;
+
             case 'link':
                 return route('wechat.user', [], true);
+                break;
+
+            case '余额':
+            case '积分':
+            case '钱':
+            case '1':
+                $openId = $this->message['FromUserName'];
+                $user = User::where('weixin_openid', $openId)->first();
+                $balance = $user->balance;
+                $balanceWithDraw = $user->balance_withdraw;
+                return <<< EOF
+{$user->name}:
+----------------------
+账户余额: {$balance} 元
+正在提现: {$balanceWithDraw} 元
+EOF;
+
                 break;
 
             case 'exception':
@@ -271,7 +312,7 @@ class WeChatController extends Controller
     public function tbkSearchByTitle(\EasyWeChat\OfficialAccount\Application $app)
     {
         $query = trim($this->message['Content']);
-        if (mb_strlen($query) <= 10) {
+        if (mb_strlen($query) <= 6) {
             return false;
         }
 
