@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Handlers\TbkRebateHandler;
 use Illuminate\Database\Eloquent\Model;
 
 class TbkOrder extends Model
@@ -50,5 +51,55 @@ class TbkOrder extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
+    /**
+     * 已结算
+     * @param $query
+     *
+     * @return mixed
+     */
+    public function scopeSettled($query)
+    {
+        return $query->where('tk_status', 3);
+    }
+
+    /**
+     * 已下单
+     * @param $query
+     *
+     * @return mixed
+     */
+    public function scopeOrdered($query)
+    {
+        return $query->where('tk_status', 12);
+    }
+
+    /**
+     * 已取消
+     * @param $query
+     *
+     * @return mixed
+     */
+    public function scopeCanceled($query)
+    {
+        return $query->where('tk_status', 13);
+    }
+
+    /**
+     * 已返利
+     * @param $query
+     *
+     * @return mixed
+     */
+    public function scopeRebated($query)
+    {
+        return $query->where('is_rebate', true);
+    }
+
+    public function calcRebate($serviceFeeRate = null, $userShareRate = null)
+    {
+        return app(TbkRebateHandler::class)
+            ->getRebate($this, $this->tk_status == 3 ? false : true, $serviceFeeRate, $userShareRate);
     }
 }

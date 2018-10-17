@@ -8,78 +8,33 @@ use Illuminate\Http\Request;
 class TbkOrderController extends Controller
 {
     /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
-    {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
      * Display the specified resource.
      *
      * @param  \App\Models\TbkOrder  $tbkOrder
      * @return \Illuminate\Http\Response
      */
-    public function show(TbkOrder $tbkOrder)
+    public function show(Request $request)
     {
-        //
-    }
+        $user = \Auth::user();
+        $orders = $user->tbkOrders()->orderByDesc('create_time')->limit(50);
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\Models\TbkOrder  $tbkOrder
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(TbkOrder $tbkOrder)
-    {
-        //
-    }
+        $status = $request->input('status', null);
+        $active = $status;
+        switch ($status) {
+            case 'paid':
+                $orders = $orders->ordered();
+                break;
+            case 'canceled':
+                $orders = $orders->canceled();
+                break;
+            case 'settled':
+                $orders = $orders->settled();
+                break;
+            default:
+                $active = 'all';
+        }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\TbkOrder  $tbkOrder
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, TbkOrder $tbkOrder)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\Models\TbkOrder  $tbkOrder
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(TbkOrder $tbkOrder)
-    {
-        //
+        $orders = $orders->get();
+        return view('orders.show', compact('orders', 'active'));
     }
 }

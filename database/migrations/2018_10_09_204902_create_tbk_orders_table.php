@@ -36,7 +36,7 @@ class CreateTbkOrdersTable extends Migration
             $table->string('site_name')->comment('来源媒体名称');
             $table->string('adzone_id')->comment('广告位ID: 47026226');
             $table->string('adzone_name')->comment('广告位名称');
-            $table->timestamp('create_time')->comment('淘客订单创建时间: 2018-10-06 14:46:36')->nullable();
+            $table->timestamp('create_time')->comment('淘客订单创建时间: 2018-10-06 14:46:36')->nullable()->index();
             $table->timestamp('earning_time')->comment('淘客订单结算时间: 2018-11-20 10:37:48')->nullable();
 
 
@@ -69,6 +69,8 @@ class CreateTbkOrdersTable extends Migration
             $table->decimal('subsidy_fee', 12, 4)->comment('补贴金额');
             $table->string('relation_id')->comment('渠道关系ID')->nullable();
             $table->string('special_id')->comment('会员运营id')->nullable();
+
+            $table->string('pict_url')->nullable()->comment('商品图片');
         });
     }
 

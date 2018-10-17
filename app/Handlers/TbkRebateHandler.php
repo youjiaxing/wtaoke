@@ -23,10 +23,15 @@ class TbkRebateHandler
      */
     public function getRebate(TbkOrder $tbkOrder, $pre, $serviceFeeRate = null, $userShareRate = null)
     {
+        $fee = $pre ? $tbkOrder->pub_share_pre_fee : $tbkOrder->total_commission_fee;
+        return $this->calcRebate($fee, $serviceFeeRate, $userShareRate);
+    }
+
+    public function calcRebate($fee, $serviceFeeRate = null, $userShareRate = null)
+    {
         $serviceFeeRate = is_null($serviceFeeRate) ? config('taobaotop.service_fee_rate', 0.1) : $serviceFeeRate;
         $userShareRate = is_null($userShareRate) ? config('taobaotop.user_share_rate', 1) : $userShareRate;
 
-        $fee = $pre ? $tbkOrder->pub_share_pre_fee : $tbkOrder->total_commission_fee;
         $rebate = $fee > 0 ?
             max(
                 0.01,

@@ -1,9 +1,224 @@
-
 // Fonts
 @import url("https://fonts.googleapis.com/css?family=Raleway:300,400,600");
-
 // Variables
 @import "variables";
-
 // Bootstrap
 @import "~bootstrap-sass/assets/stylesheets/bootstrap";
+
+body {
+  font-family: Hiragino Sans GB, "Hiragino Sans GB", Helvetica, "Microsoft YaHei", Arial, sans-serif;
+}
+
+// 用户个人页 user.show
+.wechat-user-page {
+  .user-info {
+    .media-left {
+      img {
+        margin-top: 10px;
+      }
+    }
+
+    .media-body {
+      p {
+        margin-top: auto;
+        margin-bottom: 0;
+      }
+    }
+
+    .media-right {
+      vertical-align: middle;
+      horiz-align: center;
+
+      a {
+        border-radius: 10px;
+        color: #fff;
+        padding-top: 2px;
+        padding-bottom: 2px;
+      }
+    }
+
+  }
+
+  .row {
+    //padding-top: 20px;
+  }
+
+  .list-group-item {
+    border-left: none;
+    border-right: none;
+    border-color: rgb(230, 230, 230);
+  }
+
+  a {
+    &:link, &:hover, &:visited {
+      color: inherit;
+      text-decoration: none;
+    }
+    color: #000;
+    text-decoration: none;
+    outline: 0;
+  }
+
+  .income-info, .order-info {
+    p {
+      margin-bottom: 2px;
+    }
+  }
+}
+
+// 用户金钱流向页 users.money_flow
+.wechat-user-moneyFlow-page {
+  #content {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  #top-msg {
+    padding: 3px 15px;
+    font-size: 80%;
+    margin-bottom: 5px;
+    margin-top: 50px;
+  }
+
+  .panel {
+    .panel-heading {
+      padding: 3px 15px;
+    }
+
+    .panel-body {
+      padding: 8px 15px;
+    }
+
+    .panel-footer {
+      background-color: inherit;
+      border-bottom-width: 0;
+    }
+
+    margin-bottom: 5px;
+  }
+
+  .list-group-item {
+    padding: 0;
+    border-width: 0;
+  }
+
+  .comment {
+    display: block;
+    margin-top: 7px;
+  }
+
+  .top-navbar {
+    li {
+      width: 33%;
+    }
+  }
+}
+
+// 用户提现记录页
+.wechat-withdrawHistory-show-page {
+  #content {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+// 订单详情 orders.show
+.wechat-tbkOrder-show-page {
+  #content {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .list-group {
+    hr {
+      margin: 8px 0;
+    }
+
+    .list-group-item {
+      padding: 0;
+      border-width: 0;
+      margin-bottom: 8px;
+
+      .panel {
+        margin: 0;
+      }
+
+      .panel-heading, .panel-footer, .panel-body {
+        border-style: solid;
+        border-color: #eeeeee;
+        border-left: none;
+        border-right: none;
+        border-width: 1px;
+      }
+
+      .panel-heading {
+        border-top-width: 0;
+        padding: 8px 15px;
+      }
+      .panel-footer {
+        background-color: inherit;
+        border-bottom-width: 0;
+        padding: 5px 10px;
+      }
+      .panel-body {
+        padding: 8px 15px;
+      }
+    }
+  }
+
+  .item-title {
+    margin-bottom: 1px;
+  }
+
+  .after-top-navbar {
+    margin-top: 50px;
+  }
+}
+
+// 右垂直分割线
+.vertical-divider-right {
+  border-right: dotted 1px #eeeeee;
+}
+
+// 左垂直分隔线
+.vertical-divider-left {
+  border-left: dotted 1px #eeeeee;
+}
+
+// 金钱数值
+.money {
+  color: #da2508;
+  font-weight: bolder;
+}
+
+// 顶部简单水平导航条
+.top-navbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 990;
+
+  padding: 10px 30px;
+  background-color: #fff;
+
+  li {
+    width: 25%;
+    float: left;
+    list-style: none;
+    text-align: center;
+
+    &.active {
+      border-bottom: #099833 2px solid;
+    }
+  }
+
+  a {
+    &:link, &:hover, &:visited {
+      color: inherit;
+      text-decoration: none;
+    }
+    color: inherit;
+    text-decoration: none;
+  }
+}

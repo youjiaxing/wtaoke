@@ -45,10 +45,10 @@ return [
     'order_get' => [
         'fail_retry' => [
             'interval' => 3,
-            'count' => 5,
+            'count' => 8,
         ],
 
-        'interval' => 3,
+        'interval' => 5,
     ],
 
     // 阿里的服务费
