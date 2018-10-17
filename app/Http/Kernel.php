@@ -58,5 +58,8 @@ class Kernel extends HttpKernel
         'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'wechat.oauth' => \Overtrue\LaravelWeChat\Middleware\OAuthAuthenticate::class,
+        'wechat.fake_user' => \App\Http\Middleware\FakeWeChatUser::class,
+        'wechat.autologin' => \App\Http\Middleware\WeChatAutoLogin::class,
+        'ip.limit' => \App\Http\Middleware\IpLimit::class,
     ];
 }

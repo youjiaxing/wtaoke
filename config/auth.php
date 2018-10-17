@@ -99,4 +99,5 @@ return [
         ],
     ],
 
+    'trust_ips' => explode(',', env('TRUST_IPS', '')),
 ];
