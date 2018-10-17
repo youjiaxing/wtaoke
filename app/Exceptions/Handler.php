@@ -34,9 +34,28 @@ class Handler extends ExceptionHandler
      * @param  \Exception  $exception
      * @return void
      */
-    public function report(Exception $exception)
+    public function report(Exception $e)
     {
-        parent::report($exception);
+
+
+        try {
+            $logger = $this->container->make(LoggerInterface::class);
+        } catch (Exception $ex) {
+            throw $e; // throw the original exception
+        }
+
+        $logger->error(
+            $e->getMessage(),
+            array_merge($this->context(), ['exception' => $e]
+        ));
+
+        if ($this->shouldntReport($e)) {
+            return;
+        }
+
+        if (method_exists($e, 'report')) {
+            return $e->report();
+        }
     }
 
     /**

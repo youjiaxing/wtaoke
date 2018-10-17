@@ -8,6 +8,7 @@
 namespace App\Services\TbkApi;
 
 use Illuminate\Support\Str;
+use TopClient\request\TbkItemInfoGetRequest;
 use TopClient\TopClient;
 use TopClient\request\TbkCouponGetRequest;
 use TopClient\request\TbkDgItemCouponGetRequest;
@@ -70,6 +71,23 @@ class TbkApiService
     }
 
     /**
+     * @param $itemIds
+     *
+     * @return mixed|\SimpleXMLElement|\TopClient\ResultSet
+     */
+    public function itemInfoGet($itemIds)
+    {
+        $itemIds = (array)$itemIds;
+        $req = new TbkItemInfoGetRequest();
+        $req->setFields("cat_name", 'num_iid', 'title', 'pict_url', 'small_images', 'reserve_price', 'zk_final_price',
+            'user_type', 'provcity', 'item_url', 'seller_id', 'volume', 'nick', 'cat_leaf_name', 'is_prepay',
+            'shop_dsr', 'ratesum', 'i_rfd_rate', 'h_good_rate', 'h_pay_rate30', 'free_shipment', 'material_lib_type');
+        $req->setNumIids(implode(',', $itemIds));
+        $req->setPlatform("2");
+        return $resp = $this->topClient->execute($req);
+    }
+
+    /**
      * 好券清单API【导购】
      *      - 只能搜索到有优惠券的商品
      *
@@ -122,7 +140,7 @@ class TbkApiService
     public function tpwdCreate($couponUrl, $text = null, $logoUrl = null)
     {
         if (Str::startsWith($couponUrl, "//")) {
-            $couponUrl = "https:".$couponUrl;
+            $couponUrl = "https:" . $couponUrl;
         }
 
         $req = new TbkTpwdCreateRequest;

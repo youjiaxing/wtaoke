@@ -10,6 +10,7 @@ namespace App\Services\TbkThirdApi\Api;
 use App\Services\TbkThirdApi\Traits\HasHttpRequests;
 use GuzzleHttp\Exception\GuzzleException;
 use TopClient\request\TbkScOrderGetRequest;
+use Illuminate\Support\Facades\Redis;
 
 class KoussApi extends Api
 {
@@ -42,12 +43,23 @@ class KoussApi extends Api
     public function scOrderGet(TbkScOrderGetRequest $request)
     {
         try {
+            if (!Redis::set(__METHOD__, 1, "nx", "ex", 1)) {
+                \Log::debug(__METHOD__ . " lock failed.");
+                return false;
+            }
+
+
             $data = array_merge($request->getApiParas(), $this->getParams());
             $response = $this->httpPostJson("orderGet", $data);
             $this->lastVisit = microtime(true);
 
             $stringBody = (string)$response->getBody();
             $content = json_decode($stringBody, true, 512, JSON_BIGINT_AS_STRING);
+
+            if (!empty($content['code']) && $content['code'] == 106 && $content['msg'] == 'Too fast') {
+                \Log::debug(__METHOD__ . " 结果失败: $stringBody");
+                return false;
+            }
 
             if (empty($content['tbk_sc_order_get_response'])) {
                 \Log::warning(__METHOD__ . " 结果失败: $stringBody");
@@ -56,7 +68,7 @@ class KoussApi extends Api
             return isset($content['tbk_sc_order_get_response']['results']['n_tbk_order']) ?
                 $content['tbk_sc_order_get_response']['results']['n_tbk_order'] :
                 [];
-        } catch (GuzzleException $e) {
+        } catch (\Exception $e) {
             \Log::warning(__METHOD__ . " 请求失败: " . $e->getMessage());
             return false;
         }

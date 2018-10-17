@@ -38,7 +38,7 @@ class Kernel extends ConsoleKernel
 //                ->appendOutputTo(storage_path("logs" . DIRECTORY_SEPARATOR . "timer.log"));
 
             // 每天 07:00 同步前一天所有订单, 防止丢单
-            $start = Carbon::yesterday()->toDateTimeString();
+            $start = Carbon::now()->subDays(3)->toDateTimeString();
             $end = Carbon::today()->toDateTimeString();
             $schedule->command("tbk:sync-order '{$start}' '{$end}'")
                 ->dailyAt('07:00')
@@ -47,7 +47,8 @@ class Kernel extends ConsoleKernel
             // 每月 20,21 号定时查询上个月已结算订单
             $start = Carbon::parse("first day of last month")->toDateTimeString();
             $end = Carbon::today()->toDateTimeString();
-            $schedule->command("tbk:sync-order '{$start}' '{$end}' --settle")
+            $schedule->command("tbk:sync-order '{$start}' '{$end}'")
+//            $schedule->command("tbk:sync-order '{$start}' '{$end}' --settle")
                 ->cron("0 5 20,21 * *")
                 ->withoutOverlapping(120);
         }

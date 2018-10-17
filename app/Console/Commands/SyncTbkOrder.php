@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\TbkOrder;
 use App\Models\User;
+use App\Services\TbkApi\TbkApiService;
 use App\Services\TbkThirdApi\Manager;
 use Carbon\Carbon;
 use Symfony\Component\Console\Input\InputInterface;
@@ -107,7 +108,6 @@ class SyncTbkOrder extends Command
         while (strtotime($startTime) < strtotime($endTime)) {
             $this->debug("查询订单" . ($this->settle ? "(结算)" : "") ." $startTime - $endTime, 当前第 $pageNo 页");
             $response = $this->fetchOrder($req, $startTime, $pageNo);
-            dump($response);
 
             // 获取数据失败
             if ($response === false) {
@@ -115,7 +115,7 @@ class SyncTbkOrder extends Command
                     $this->warn("订单连续查询失败达到 {$consecutiveFail} 次, 本次查询中止!");
                     break;
                 } else {
-                    $this->warn("订单查询" . ($consecutiveFail > 1 ? "连续" : "") . "失败 {$consecutiveFail} 次, 准备开始下一次尝试");
+                    $this->debug("订单查询" . ($consecutiveFail > 1 ? "连续" : "") . "失败 {$consecutiveFail} 次, 准备开始下一次尝试");
                     sleep(config('taobaotop.order_get.fail_retry.interval'));
                 }
                 continue;
@@ -198,7 +198,7 @@ class SyncTbkOrder extends Command
         ];
 
         foreach ($response as $item) {
-            dump($item);
+//            dump($item);
             $validator = validator($item, $validateRules);
             if ($validator->fails()) {
                 $this->info("忽略异常订单, 异常:" . $validator->errors()->first() . "  订单:" . json($item));
@@ -217,10 +217,12 @@ class SyncTbkOrder extends Command
             if ($tbkOrder->exists) {
                 if ($tbkOrder->tk_status != $item['tk_status']) {
                     $this->info(
-                        "订单 $tradeId({$item['trade_parent_id']}) 状态改变: " .
+                        "订单:$tradeId({$item['trade_parent_id']}) 状态改变: " .
                         tbkOrderStatusMap($tbkOrder->tk_status) .
                         ' -> ' .
-                        tbkOrderStatusMap($item['tk_status'])
+                        tbkOrderStatusMap($item['tk_status']) .
+                        ($tbkOrder->user ? "用户: " . $tbkOrder->user->name : "") .
+                        " 商品:{$item['item_title']}"
                     );
                     $tbkOrder['need_notify'] = true;
 
@@ -238,6 +240,12 @@ class SyncTbkOrder extends Command
                     $tbkOrder->user_id = $user->id;
                 }
                 $tbkOrder['need_notify'] = true;
+
+                $itemId = $tbkOrder['num_iid'];
+                $itemInfo = app(TbkApiService::class)->itemInfoGet($itemId);
+                if (!empty($itemInfo) && !empty($itemInfo->results) && !empty($itemInfo->results->n_tbk_item)) {
+                    $tbkOrder->pict_url = ($itemInfo->results->n_tbk_item[0])->pict_url;
+                }
 
                 try {
                     $tbkOrder->save();

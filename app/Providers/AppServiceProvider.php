@@ -2,12 +2,14 @@
 
 namespace App\Providers;
 
+use App\Handlers\TbkRebateHandler;
 use App\Models\TbkOrder;
 use App\Observers\TbkOrderObserver;
 use App\Services\TbkApi\TbkApiService;
 use App\Services\TbkThirdApi\Api\KoussApi;
 use App\Services\TbkThirdApi\Api\MiaoYouQuanApi;
 use App\Services\TbkThirdApi\Manager;
+use App\Transformers\TbkOrderTransformer;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -53,15 +55,18 @@ class AppServiceProvider extends ServiceProvider
                 )
             );
 
-            $manager->pushApi(
-                new MiaoYouQuanApi(
-                    config('taobaotop.third.miao_you_quan.app_key'),
-                    config('taobaotop.third.miao_you_quan.tb_name')
-                )
-            );
+//            $manager->pushApi(
+//                new MiaoYouQuanApi(
+//                    config('taobaotop.third.miao_you_quan.app_key'),
+//                    config('taobaotop.third.miao_you_quan.tb_name')
+//                )
+//            );
 
             return $manager;
         });
         $this->app->alias(Manager::class, "tbk.third.manager");
+
+        $this->app->singleton(TbkRebateHandler::class);
+        $this->app->singleton(TbkOrderTransformer::class);
     }
 }
