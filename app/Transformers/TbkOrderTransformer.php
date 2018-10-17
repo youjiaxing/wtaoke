@@ -62,10 +62,10 @@ EOF;
             'tradeId' => $tbkOrder->trade_parent_id,
             'itemTitle' => Str::limit($tbkOrder->item_title, 25),
             'time' => $tbkOrder->create_time->toDateTimeString(),
-            'price' => $this->priceFormat($tbkOrder->alipay_total_price),
-            'rebate' => $this->priceFormat(app(TbkRebateHandler::class)->getRebate($tbkOrder, true)),
+            'price' => moneyFormat($tbkOrder->alipay_total_price),
+            'rebate' => moneyFormat(app(TbkRebateHandler::class)->getRebate($tbkOrder, true)),
             'debug' => "实际佣金(已扣除10%服务费): ¥ " .
-                $this->priceFormat(app(TbkRebateHandler::class)->getRebate($tbkOrder, true, null, 1)),
+                moneyFormat(app(TbkRebateHandler::class)->getRebate($tbkOrder, true, null, 1)),
         ];
         return $data;
     }
@@ -117,24 +117,12 @@ EOF;
             'tradeId' => $tbkOrder->trade_parent_id,
             'itemTitle' => Str::limit($tbkOrder->item_title, 25),
             'time' => $tbkOrder->rebate_time->toDateTimeString(),
-            'price' => $this->priceFormat($tbkOrder->alipay_total_price),
-            'rebate' => $this->priceFormat(app(TbkRebateHandler::class)->getRebate($tbkOrder, true)),
+            'price' => moneyFormat($tbkOrder->alipay_total_price),
+            'rebate' => moneyFormat(app(TbkRebateHandler::class)->getRebate($tbkOrder, true)),
             'balance' => $tbkOrder->user->balance,
             'debug' => "实际佣金(已扣除10%服务费): ¥ " .
-                $this->priceFormat(app(TbkRebateHandler::class)->getRebate($tbkOrder, true, null, 1)),
+                moneyFormat(app(TbkRebateHandler::class)->getRebate($tbkOrder, true, null, 1)),
         ];
         return $data;
-    }
-
-    /**
-     * 金额格式化
-     *
-     * @param $price
-     *
-     * @return string
-     */
-    protected function priceFormat($price)
-    {
-        return number_format($price, 2, '.', '');
     }
 }
