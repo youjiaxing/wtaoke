@@ -12,6 +12,8 @@ use App\Models\TbkOrder;
 class TbkRebateHandler
 {
     /**
+     *
+     *
      * @param TbkOrder    $tbkOrder
      * @param boolean     $pre
      *      - true 计算预付佣金
@@ -27,6 +29,13 @@ class TbkRebateHandler
         return $this->calcRebate($fee, $serviceFeeRate, $userShareRate);
     }
 
+    /**
+     * @param float $fee 原始返利
+     * @param null  $serviceFeeRate
+     * @param null  $userShareRate
+     *
+     * @return float
+     */
     public function calcRebate($fee, $serviceFeeRate = null, $userShareRate = null)
     {
         $serviceFeeRate = is_null($serviceFeeRate) ? config('taobaotop.service_fee_rate', 0.1) : $serviceFeeRate;
@@ -38,7 +47,6 @@ class TbkRebateHandler
                 $fee * (1 - $serviceFeeRate) * $userShareRate
             ) :
             0;
-
         return round($rebate, 2, PHP_ROUND_HALF_DOWN);
     }
 }

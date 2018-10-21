@@ -243,8 +243,8 @@ class SyncTbkOrder extends Command
 
                 $itemId = $tbkOrder['num_iid'];
                 $itemInfo = app(TbkApiService::class)->itemInfoGet($itemId);
-                if (!empty($itemInfo) && !empty($itemInfo->results) && !empty($itemInfo->results->n_tbk_item)) {
-                    $tbkOrder->pict_url = ($itemInfo->results->n_tbk_item[0])->pict_url;
+                if (!empty($itemInfo)) {
+                    $tbkOrder->pict_url = $itemInfo[0]['pict_url'];
                 }
 
                 try {

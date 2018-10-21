@@ -89,6 +89,7 @@ class Command extends \Illuminate\Console\Command
                 break;
 
             case 'warning':
+            case 'warn':
                 $this->getLogger()->warning($string);
                 break;
 

@@ -37,6 +37,15 @@ class Kernel extends ConsoleKernel
                 ->withoutOverlapping(15);
 //                ->appendOutputTo(storage_path("logs" . DIRECTORY_SEPARATOR . "timer.log"));
 
+            // 每5分钟同步 前40分钟 ~ 前20分钟 的结算订单
+            $start = Carbon::now()->subMinutes(40)->toDateTimeString();
+            $end = Carbon::now()->subMinutes(20)->toDateTimeString();
+            $schedule->command("tbk:sync-order '{$start}' '{$end}' --settle")
+//            $schedule->command("tbk:sync-order '{$start}' '{$end}' --settle")
+                ->everyFiveMinutes()
+                ->withoutOverlapping(120);
+
+
             // 每天 07:00 同步前一天所有订单, 防止丢单
             $start = Carbon::now()->subDays(3)->toDateTimeString();
             $end = Carbon::today()->toDateTimeString();

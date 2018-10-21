@@ -56,7 +56,7 @@ class TbkApiService
      *
      * @param $query
      *
-     * @return mixed|\SimpleXMLElement|\TopClient\ResultSet
+     * @return bool|array
      */
     public function itemGet($query)
     {
@@ -67,13 +67,16 @@ class TbkApiService
         $req->setPlatform('2');
         $req->setPageNo('1'); // 实验后发现必需用字符串的数字才能正确分页
         $req->setPageSize('40');
-        return $resp = $this->topClient->execute($req);
+        return $resp = $this->execute($req);
     }
 
     /**
+     * 淘宝客商品详情（简版）
+     * @see http://open.taobao.com/api.htm?cid=1&docId=24518&docType=2
+     *
      * @param $itemIds
      *
-     * @return mixed|\SimpleXMLElement|\TopClient\ResultSet
+     * @return bool|array
      */
     public function itemInfoGet($itemIds)
     {
@@ -84,7 +87,8 @@ class TbkApiService
             'shop_dsr', 'ratesum', 'i_rfd_rate', 'h_good_rate', 'h_pay_rate30', 'free_shipment', 'material_lib_type');
         $req->setNumIids(implode(',', $itemIds));
         $req->setPlatform("2");
-        return $resp = $this->topClient->execute($req);
+        $resp = $this->execute($req);
+        return $resp ? $resp['results']['n_tbk_item'] : false;
     }
 
     /**
@@ -95,7 +99,7 @@ class TbkApiService
      *
      * @param $query
      *
-     * @return mixed|\SimpleXMLElement|\TopClient\ResultSet
+     * @return bool|array
      */
     public function dgItemCouponGet($query, $pageNo = "1", $pageSize = "2")
     {
@@ -107,7 +111,7 @@ class TbkApiService
         $req->setQ($query);
         $req->setPageNo($pageNo);
         $req->setPageSize($pageSize);
-        return $resp = $this->topClient->execute($req);
+        return $resp = $this->execute($req);
     }
 
     /**
@@ -118,14 +122,14 @@ class TbkApiService
      * @param $itemId
      * @param $couponId
      *
-     * @return mixed|\SimpleXMLElement|\TopClient\ResultSet
+     * @return bool|array
      */
     public function couponGet($itemId, $couponId)
     {
         $req = new TbkCouponGetRequest;
         $req->setItemId($itemId);
         $req->setActivityId($couponId);
-        return $this->topClient->execute($req);
+        return $this->execute($req);
     }
 
     /**
@@ -135,7 +139,7 @@ class TbkApiService
      *
      * @param $couponUrl
      *
-     * @return mixed|\SimpleXMLElement|\TopClient\ResultSet
+     * @return bool|array
      */
     public function tpwdCreate($couponUrl, $text = null, $logoUrl = null)
     {
@@ -149,7 +153,7 @@ class TbkApiService
         $req->setUrl($couponUrl);
         $req->setLogo($logoUrl ?: "https://uland.taobao.com/");
         $req->setExt("{}");
-        return $resp = $this->topClient->execute($req);
+        return $this->execute($req);
     }
 
     /**
@@ -162,10 +166,12 @@ class TbkApiService
      * @param $query
      * @param $adzoneId
      *
-     * @return mixed|\SimpleXMLElement|\TopClient\ResultSet
+     * @return bool|array
      */
     public function dgMaterialOptional($query, $pageNo = "1", $pageSize = "20", $sort = "total_sales_des")
     {
+        $query = ltrim($query, '@');
+
         $req = new \TopClient\request\TbkDgMaterialOptionalRequest();
 //        $req->setStartDsr("10");
         $req->setPageSize("20");
@@ -196,12 +202,36 @@ class TbkApiService
 //        $req->setDeviceEncrypt("MD5");
 //        $req->setDeviceValue("xxx");
 //        $req->setDeviceType("IMEI");
-        return $resp = $this->execute($req);
+
+        $resp = $this->execute($req);
+        if (empty($resp['result_list'])) {
+            \Log::warning(__METHOD__ . " 查询结果错误", $resp);
+            return false;
+        }
+        return $resp ? $resp['result_list']['map_data'] : false;
     }
 
 
+    /**
+     * @param      $request
+     * @param null $session
+     * @param null $bestUrl
+     *
+     * @return bool|array
+     */
     public function execute($request, $session = null, $bestUrl = null)
     {
-        return $this->topClient->execute($request, $session, $bestUrl);
+        try {
+            $resp = $this->topClient->execute($request, $session, $bestUrl);
+            $resp = json_decode(json_encode($resp), JSON_BIGINT_AS_STRING);
+        } catch (\Exception $e) {
+            \Log::error(
+                "{$request->getApiMethodName()} 调用失败: " .
+                $e->getMessage() .
+                "\n" . $e->getTraceAsString()
+            );
+            return false;
+        }
+        return $resp;
     }
 }

@@ -25,14 +25,15 @@ Route::any('/wechat', 'WeChatController@serve');
 //    })->name('wechat.user');
 //});
 
-Route::group(['middleware' => ['wechat.fake_user:local']], function () {
+Route::group(['prefix' => 'wechat', 'middleware' => ['wechat.fake_user:ip']], function () {
     Route::group(['middleware' => ['web', 'wechat.oauth', 'wechat.autologin']], function () {
-        Route::get('/wechat/user', 'TbkUserController@show')->name('wechat.user');
+        Route::get('/user', 'TbkUserController@show')->name('wechat.user');
 
-        Route::get('/wechat/withdraw-history', 'WithdrawHistoryController@show')->name('wechat.withdrawHistory.show');
+//        Route::get('/withdraw-history', 'WithdrawHistoryController@show')->name('wechat.withdrawHistory.show');
 
-        Route::get('/wechat/order', 'TbkOrderController@show')->name('wechat.tbkOrder.show');
-        Route::get('/wechat/moneyFlow', 'TbkUserController@moneyFlow')->name('wechat.user.moneyFlow');
+        Route::get('/order', 'TbkOrderController@show')->name('wechat.tbkOrder.show');
+        Route::get('/moneyFlow', 'TbkUserController@moneyFlow')->name('wechat.user.moneyFlow');
+        Route::get('/tbkItem/{itemId}', 'TbkItemController@show')->name('wechat.tbkItem.show');
     });
 });
 

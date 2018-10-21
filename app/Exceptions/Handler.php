@@ -4,6 +4,7 @@ namespace App\Exceptions;
 
 use Exception;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Psr\Log\LoggerInterface;
 
 class Handler extends ExceptionHandler
 {
@@ -36,26 +37,27 @@ class Handler extends ExceptionHandler
      */
     public function report(Exception $e)
     {
+        parent::report($e);
 
-
-        try {
-            $logger = $this->container->make(LoggerInterface::class);
-        } catch (Exception $ex) {
-            throw $e; // throw the original exception
-        }
-
-        $logger->error(
-            $e->getMessage(),
-            array_merge($this->context(), ['exception' => $e]
-        ));
-
-        if ($this->shouldntReport($e)) {
-            return;
-        }
-
-        if (method_exists($e, 'report')) {
-            return $e->report();
-        }
+//        try {
+//            $logger = $this->container->make(LoggerInterface::class);
+//        } catch (Exception $ex) {
+//            throw $e; // throw the original exception
+//        }
+//
+//        $logger->error(
+//            $e->getMessage(),
+//            array_merge($this->context(), ['exception' => $e]
+//        ));
+//        \Log::error("ExceptionHandler " . $e->getMessage(). " ". $e->getTraceAsString());
+//
+//        if ($this->shouldntReport($e)) {
+//            return;
+//        }
+//
+//        if (method_exists($e, 'report')) {
+//            return $e->report();
+//        }
     }
 
     /**

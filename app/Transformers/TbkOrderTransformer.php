@@ -64,8 +64,9 @@ EOF;
             'time' => $tbkOrder->create_time->toDateTimeString(),
             'price' => moneyFormat($tbkOrder->alipay_total_price),
             'rebate' => moneyFormat(app(TbkRebateHandler::class)->getRebate($tbkOrder, true)),
-            'debug' => "实际佣金(已扣除10%服务费): ¥ " .
-                moneyFormat(app(TbkRebateHandler::class)->getRebate($tbkOrder, true, null, 1)),
+            'debug' => '',
+//            'debug' => "实际佣金(已扣除10%服务费): ¥ " .
+//                moneyFormat(app(TbkRebateHandler::class)->getRebate($tbkOrder, true, null, 1)),
         ];
         return $data;
     }
@@ -120,8 +121,9 @@ EOF;
             'price' => moneyFormat($tbkOrder->alipay_total_price),
             'rebate' => moneyFormat(app(TbkRebateHandler::class)->getRebate($tbkOrder, true)),
             'balance' => $tbkOrder->user->balance,
-            'debug' => "实际佣金(已扣除10%服务费): ¥ " .
-                moneyFormat(app(TbkRebateHandler::class)->getRebate($tbkOrder, true, null, 1)),
+            'debug' => "",
+//            'debug' => "实际佣金(已扣除10%服务费): ¥ " .
+//                moneyFormat(app(TbkRebateHandler::class)->getRebate($tbkOrder, true, null, 1)),
         ];
         return $data;
     }

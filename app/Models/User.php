@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\WithdrawHistory;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
@@ -23,6 +22,7 @@ class User extends Authenticatable
         'weixin_openid',
         'weixin_unionid',
         'alipay_account',
+        'weixin_subscribe'
     ];
 
     /**
@@ -50,13 +50,5 @@ class User extends Authenticatable
     public function moneyFlows()
     {
         return $this->hasMany(MoneyFlow::class, 'user_id', 'id');
-    }
-
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function withdrawHistories()
-    {
-        return $this->hasMany(WithdrawHistory::class, 'user_id', 'id');
     }
 }

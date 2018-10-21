@@ -20,6 +20,8 @@ abstract class Api
      * @param TbkScOrderGetRequest $request
      *
      * @return mixed|false
+     *
+     * @see http://open.taobao.com/api.htm?docId=38078&docType=2&scopeId=14474
      */
     public function scOrderGet(TbkScOrderGetRequest $request)
     {

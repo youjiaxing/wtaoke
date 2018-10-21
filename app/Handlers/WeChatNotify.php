@@ -65,7 +65,25 @@ class WeChatNotify
             $send['url'] = $url;
         }
 
-        $this->app->template_message->send($send);
+        $result = $this->app->template_message->send($send);
+
+        if (!empty($result['errcode'])) {
+            /*
+             * 失败
+                array:2 [
+                    "errcode" => 40037
+                    "errmsg" => "invalid template_id hint: [b_pela00233945]"
+                ]
+            * 成功
+                array:3 [
+                  "errcode" => 0
+                  "errmsg" => "ok"
+                  "msgid" => 510964448689995776
+                ]
+            */
+
+            throw new \Exception($result['errmsg'], $result['errcode']);
+        }
     }
 
     /**
@@ -74,30 +92,27 @@ class WeChatNotify
      * @param          $openId
      * @param TbkOrder $tbkOrder
      *
-     * @return bool
+     * @throws InvalidArgumentException
      */
     public function notifyNewOrder($openId, TbkOrder $tbkOrder)
     {
-        try {
-            switch (config('taobaotop.notify_type')) {
-                case 'template':
-                    $data = app(TbkOrderTransformer::class)->newOrderWithTemplate($tbkOrder);
-                    $this->notifyByTemplate($openId, 'SX43t4D2qiT7nbGdRU5fVEi6eRtEt_CVLvEsRcqJ5Sk', $data);
-                    break;
+        switch (config('taobaotop.notify_type')) {
+            case 'template':
+                $data = app(TbkOrderTransformer::class)->newOrderWithTemplate($tbkOrder);
+                $this->notifyByTemplate(
+                    $openId,
+                    config('taobaotop.notify_templates.new_order'),
+                    $data,
+                    route('wechat.tbkOrder.show')
+                );
+                break;
 
-                default:
-                    $this->notifyUser(
-                        $openId,
-                        app(TbkOrderTransformer::class)->newOrderWithText($tbkOrder)
-                    );
-            }
-
-
-        } catch (\Exception $e) {
-            \Log::warning("通知用户 $openId 新订单失败: " . $e->getMessage());
-            return false;
+            default:
+                $this->notifyUser(
+                    $openId,
+                    app(TbkOrderTransformer::class)->newOrderWithText($tbkOrder)
+                );
         }
-        return true;
     }
 
     /**
@@ -105,29 +120,23 @@ class WeChatNotify
      *
      * @param          $openId
      * @param TbkOrder $tbkOrder
+     *
+     * @throws InvalidArgumentException
      */
     public function notifySettleOrder($openId, TbkOrder $tbkOrder)
     {
-        try {
-            switch (config('taobaotop.notify_type')) {
-                case 'template':
-                    $data = app(TbkOrderTransformer::class)->newRebateWithTemplate($tbkOrder);
-                    $this->notifyByTemplate($openId, 'cNJoJyQjEyBM_72Oq-fOIyMGZu53dRJKPMkATNsaR1E', $data);
-                    break;
+        switch (config('taobaotop.notify_type')) {
+            case 'template':
+                $data = app(TbkOrderTransformer::class)->newRebateWithTemplate($tbkOrder);
+                $this->notifyByTemplate($openId, config('taobaotop.notify_templates.new_rebate'), $data);
+                break;
 
-                default:
-                    $this->notifyUser(
-                        $openId,
-                        app(TbkOrderTransformer::class)->newRebateWithText($tbkOrder)
-                    );
-            }
-
-
-        } catch (\Exception $e) {
-            \Log::warning("通知用户 $openId 返利到账失败: " . $e->getMessage());
-            return false;
+            default:
+                $this->notifyUser(
+                    $openId,
+                    app(TbkOrderTransformer::class)->newRebateWithText($tbkOrder)
+                );
         }
-        return true;
     }
 
 

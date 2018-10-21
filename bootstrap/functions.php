@@ -58,7 +58,7 @@ function flowSubType($subType)
 {
     switch ($subType) {
         case 11:
-            return "订单结算";
+            return "结算";
 
         case 21:
             return "提现";
@@ -66,4 +66,29 @@ function flowSubType($subType)
         default:
             return "未知 $subType";
     }
+}
+
+/**
+ * 解析优惠券文本信息
+ *
+ * @param string $couponInfo "满100元减3元"
+ *
+ * @return array [$couponCond, $couponAmount]
+ */
+function parseCouponInfo($couponInfo)
+{
+    // 优惠券优惠金额
+    if (preg_match("~满(\d+(?:.\d+)?)元减(\d+(?:.\d+)?)元~", $couponInfo, $matches)) {
+        array_shift($matches);
+        array_map('floatval', $matches);
+        array_map('moneyFormat', $matches);
+        list($couponNeed, $couponPrice) = $matches;
+    } else {
+        $couponNeed = 0;
+        $couponPrice = 0;
+    }
+    return [
+        $couponNeed,
+        $couponPrice
+    ];
 }

@@ -116,7 +116,15 @@ EOF;
             此时 SDK 会对它进行一个封装，产生一个 EasyWeChat\Kernel\Messages\Text 类型的消息并在最后的 $app->server->serve(); 时生成对应的消息 XML 格式。
             */
             \Log::debug('消息', $message);
-            $messageKey = $message['FromUserName'] . "_" . (isset($message['MsgId']) ?? '') . '_' . $message['CreateTime'];
+
+            if (!isset($message['FromUserName'])) {
+                \Log::info("不存在 FromUserName 字段", $message);
+            }
+            if (!isset($message['MsgId'])) {
+                \Log::info("不存在 MsgId 字段", $message);
+            }
+            $messageKey = (isset($message['FromUserName']) ?? '') . "_" . (isset($message['MsgId']) ?? '') . '_' . $message['CreateTime'];
+
             if (!\Cache::add($messageKey, true, 1)) {
                 return;
             }
@@ -131,6 +139,7 @@ EOF;
                     'name' => $userData['nickname'],
                     'weixin_openid' => $userData['openid'],
                     'avatar' => $userData['headimgurl'],
+                    'weixin_subscribe' => true,
                 ]);
 
                 $tbkAdzones = TbkAdzone::where('user_id', $user->id)->first();
@@ -184,6 +193,11 @@ EOF;
                     }
                     return $this->menuText;
 
+                    /**
+                     * 取消关注 {"ToUserName":"gh_13c7d52c5660","FromUserName":"oAcol5xeiVHHzXmHwqxiI_HwBhKU","CreateTime":"1540051769","MsgType":"event","Event":"unsubscribe","EventKey":null}
+                     * 关注 {"ToUserName":"gh_13c7d52c5660","FromUserName":"oAcol5xeiVHHzXmHwqxiI_HwBhKU","CreateTime":"1540052323","MsgType":"event","Event":"subscribe","EventKey":null}
+                     */
+
                     return '收到事件消息 Event: ' . $message['Event'];
                     break;
                 case 'text':
@@ -194,7 +208,6 @@ EOF;
                         [$this, 'tbkSearchByTitle'],
                         [$this, 'tbkSearchByLink'],
                     ];
-
                     foreach ($handlers as $handler) {
                         $resp = app()->call($handler);
                         if ($resp !== false) {
@@ -312,6 +325,7 @@ EOF;
     public function tbkSearchByTitle(\EasyWeChat\OfficialAccount\Application $app)
     {
         $query = trim($this->message['Content']);
+        $query = ltrim($query, '@');
         if (mb_strlen($query) <= 6) {
             return false;
         }
@@ -320,75 +334,25 @@ EOF;
             // 查询是否有对应商品
             $tbkApi = app(TbkApiService::class);
             $materialResp = $tbkApi->dgMaterialOptional($query);
-            if (empty($materialResp) || empty($materialResp->result_list)) {
+            if (empty($materialResp)) {
                 return "没有找到符合的商品";
             }
 
-            $match = Arr::first($materialResp->result_list->map_data, function ($value) use ($query) {
-                return trim($value->title) == $query;
-            }, ($materialResp->result_list->map_data)[0]);
+            $match = Arr::first($materialResp, function ($value) use ($query) {
+                return trim($value['title']) == $query;
+            }, $materialResp[0]);
 
+//            return app(TbkDgMaterialOptionalTransofmer::class)->toWeChatText($match);
+            $msg = app(TbkDgMaterialOptionalTransofmer::class)->toWeChatNews($match);
+//            $app->customer_service->message($msg)
+//                            ->to($this->message['FromUserName'])
+//                            ->send();
 
-            return app(TbkDgMaterialOptionalTransofmer::class)->toWeChatText($match);
+            //TODO 可出可加个队列任务, 预缓存该商品的数据
+
+            return $msg;
         } catch (\Exception $e) {
             return "出现异常: " . $e->getMessage() . "\n" . $e->getTraceAsString();
         }
     }
-
-//    /**
-//     * 根据查询关键字直接搜索淘宝商品7
-//     *
-//     * @param \EasyWeChat\OfficialAccount\Application $app
-//     *
-//     * @return bool|\EasyWeChat\Kernel\Messages\Message|string
-//     */
-//    public function tbkSearchByTitle(\EasyWeChat\OfficialAccount\Application $app)
-//    {
-//        if (mb_strlen(trim($this->message['Content'])) <= 10) {
-//            return false;
-//        }
-//
-//        try {
-//            $count = 0;
-//            // 查询是否有对应商品
-//            $tbkApi = app(TbkApiService::class);
-//            $couponResp = $tbkApi->dgItemCouponGet(trim($this->message['Content']), "1", "100");
-//            if (empty($couponResp->results)) {
-//                return "没有符合的商品";
-//            }
-//
-//            // 按销量排序, 并截取前N个
-//            $tbk_coupon = $couponResp->results->tbk_coupon;
-//            usort($tbk_coupon, function ($a, $b) {
-//                return $a->volume < $b->volume;
-//            });
-//            $tbk_coupon = array_slice($tbk_coupon, 0, 1);
-//
-//            // 逐个生成淘口令
-//            $items = [];
-//            foreach ($tbk_coupon as $item) {
-//                $tpwdResp = $tbkApi->tpwdCreate($item->coupon_click_url, "<内部优惠>", $item->pict_url);
-//                $tkl = $tpwdResp->data->model;
-//
-//                $item->model = $tkl;
-//                $items[] = $item;
-//            }
-//
-//            return app(TbkWeChatTransform::class)->toTklText($item);
-//
-////            foreach ($items as $item) {
-////                $app->customer_service
-////                    ->message(app(TbkWeChatTransform::class)->toTklText($item))
-////                    ->to($this->message['FromUserName'])
-////                    ->send();
-////            }
-////
-////            $count = count($items);
-////
-////            return "共为您找到 $count 个符合的商品";
-//        } catch (\Exception $e) {
-//            return "出现异常: ".$e->getMessage()."\n".$e->getTraceAsString();
-////            return false;
-//        }
-//    }
 }

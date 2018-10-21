@@ -222,3 +222,63 @@ body {
     text-decoration: none;
   }
 }
+
+// 商品详情页面 tbkItems.show
+.wechat-tbkItem-show-page {
+  // 主图
+  .main-img {
+    //height: 200px;
+    //margin-bottom: -20px;
+  }
+
+  .item-desc {
+    //margin-top: -12px;
+    padding-top: 5px;
+
+  }
+
+  .badge-tmall {
+    background-color: #ff0011;
+  }
+
+  .money-big {
+    color: #ff0011;
+    font-weight: bolder;
+  }
+
+  .coupon-money {
+    background-color: #e1e1e1;
+    color: #444444;
+  }
+  .coupon-info {
+    background: #444444;
+    color: #e1e1e1;
+  }
+
+  .bg-white {
+    background-color: rgb(245,248,250);
+  }
+
+  .has-coupon {
+    .coupon-money {
+      color: #ff0033;
+      background-color: rgb(255, 200, 202);
+    }
+    .coupon-info {
+      color: #fff;
+      background-color: #ff0033;
+    }
+  }
+
+  .shop-mark {
+    border: solid 1px #ee0000;
+    color: #ee0000;
+  }
+
+  // 预估佣金字样
+  .estimate-rebate {
+    background-color: #ff0033;
+    color: #fff;
+  }
+}
+

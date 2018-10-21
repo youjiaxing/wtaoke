@@ -20,6 +20,12 @@ return [
         ]
     ],
 
+    // 用户id
+    'userId' => env('TAOBAO_USER_ID', null),
+
+    // 网站id
+    'siteId' => env('TAOBAO_SITE_ID'),
+
     // 备用推广位
     'adzoneId' => env('TAOBAO_ADZON_ID', null),
 
@@ -35,11 +41,17 @@ return [
         'miao_you_quan' => [
             'app_key' => env('MIAO_YOU_QUAN_APP_KEY'),
             'tb_name' => env('MIAO_YOU_QUAN_TB_NAME'),
+            'vip_lv' => (int)env('MIAO_YOU_QUAN_VIP_LV', 0),
         ]
     ],
 
     // 消息通知方式
     'notify_type' => 'template',    // 'template', 'text'
+
+    'notify_templates' => [
+        'new_order' => 'cHEp7ronAEAp6V2Bp9S-v0VlVIVu6zcvzBQmH-EH8Zo',
+        'new_rebate' => 'cNJoJyQjEyBM_72Oq-fOIyMGZu53dRJKPMkATNsaR1E',
+    ],
 
     // 单次查询失败重试次数
     'order_get' => [

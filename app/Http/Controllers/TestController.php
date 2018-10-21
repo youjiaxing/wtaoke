@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\TbkApi\TbkApiService;
 use App\Transformers\TbkDgMaterialOptionalTransofmer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Redis;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class TestController extends Controller
@@ -19,12 +20,26 @@ class TestController extends Controller
         $this->topClient = $topClient;
     }
 
+    public function dynamic($method)
+    {
+        if (!method_exists($this, $method)) {
+            throw new NotFoundHttpException(" 不存在 $method 方法");
+        }
+
+        return app()->call([$this, $method]);
+    }
+
     /**
      * 淘宝客商品查询
      */
     public function itemGet(Request $request)
     {
         dump($this->topClient->itemGet($request['query']));
+    }
+
+    public function itemInfoGet(Request $request)
+    {
+        dump($this->topClient->itemInfoGet($request['query']));
     }
 
     /**
@@ -55,12 +70,12 @@ class TestController extends Controller
     public function testWeChat(Request $request)
     {
         $resp = $this->topClient->dgMaterialOptional($request['query']);
-        if (empty($resp) || empty($resp->result_list)) {
+        if (empty($resp)) {
             dump("没有找到符合的商品");
             return;
         }
         dump($resp);
-        dump(app(TbkDgMaterialOptionalTransofmer::class)->toWeChatText(($resp->result_list->map_data)[0]));
+        dump(app(TbkDgMaterialOptionalTransofmer::class)->toWeChatText($resp[0]));
 
 
 //        $resp[0]
@@ -71,6 +86,8 @@ class TestController extends Controller
 //        }
 //        dump($resp->results->tbk_coupon);
     }
+
+
 
     /**
      * 获取优惠券
@@ -98,12 +115,54 @@ class TestController extends Controller
 //        var_dump($this->topClient->dgMaterialOptional($request['query']));
     }
 
-    public function dynamic($method)
+    public function weChatMenu(\EasyWeChat\OfficialAccount\Application $app)
     {
-        if (!method_exists($this, $method)) {
-            throw new NotFoundHttpException(" 不存在 $method 方法");
-        }
+        $buttons = [
+            [
+                "type" => "view",
+                "name" => "个人中心",
+                "url" => "http://wtaoke.laraphp.cn/wechat/user"
+            ],
+        ];
+        $resp = $app->menu->create($buttons);
+        dump($resp);
 
-        return app()->call([$this, $method]);
+        $list = $app->menu->list();
+        dump($list);
+
+//        $list = $app->menu->list();
+//        dump($list);
+
+//        $current = $app->menu->current();
+//        dump($current);
+
+//        $buttons = [
+//            [
+//                "type" => "click",
+//                "name" => "今日歌曲",
+//                "key" => "V1001_TODAY_MUSIC"
+//            ],
+//            [
+//                "name" => "菜单",
+//                "sub_button" => [
+//                    [
+//                        "type" => "view",
+//                        "name" => "搜索",
+//                        "url" => "http://www.soso.com/"
+//                    ],
+//                    [
+//                        "type" => "view",
+//                        "name" => "视频",
+//                        "url" => "http://v.qq.com/"
+//                    ],
+//                    [
+//                        "type" => "click",
+//                        "name" => "赞一下我们",
+//                        "key" => "V1001_GOOD"
+//                    ],
+//                ],
+//            ],
+//        ];
+//        $app->menu->create($buttons);
     }
 }

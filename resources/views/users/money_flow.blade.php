@@ -63,7 +63,7 @@
                 </div>
             </li>
         @empty
-            <p class="text-center text-muted">当前没有符合的订单记录</p>
+            <p class="text-center text-muted">当前没有符合的收入记录</p>
         @endforelse
 
     </ul>

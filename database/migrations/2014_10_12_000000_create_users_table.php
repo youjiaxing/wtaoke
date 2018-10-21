@@ -25,6 +25,7 @@ class CreateUsersTable extends Migration
 
             $table->string('weixin_openid')->nullable()->index()->comment("微信openid");
             $table->string('weixin_unionid')->nullable()->index()->comment("微信unionid");
+            $table->boolean('weixin_subscribe')->nullable()->comment("是否关注");
 
             $table->rememberToken();
             $table->timestamps();

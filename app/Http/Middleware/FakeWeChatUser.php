@@ -11,18 +11,27 @@ class FakeWeChatUser
     /**
      * Handle an incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
+     * @param  \Illuminate\Http\Request $request
+     * @param  \Closure                 $next
+     *
      * @return mixed
      */
-    public function handle($request, Closure $next, $env = null)
+    public function handle($request, Closure $next, $limit = null)
     {
-        if ($env) {
-            if (!app()->environment($env)) {
+        // 使用ip校验
+        if ($limit == 'ip') {
+            $ip = $request->getClientIp();
+            $trustIps = config('auth.trust_ips');
+            if (!in_array($ip, $trustIps)) {
+                return $next($request);
+            }
+        } else {
+            // 使用环境校验
+            if (!app()->environment($limit)) {
                 return $next($request);
             }
         }
-//
+
         $id = $request->input('id', null);
         if ($id) {
             $id = intval($id);

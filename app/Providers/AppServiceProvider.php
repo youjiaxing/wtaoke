@@ -48,22 +48,29 @@ class AppServiceProvider extends ServiceProvider
         // 淘宝客第三方API调用服务注册
         $this->app->singleton(Manager::class, function ($app) {
             $manager = new Manager();
-            $manager->pushApi(
-                new KoussApi(
-                    config('taobaotop.third.kouss.session'),
-                    config('taobaotop.third.kouss.debug')
-                )
-            );
+            $manager->pushApi($app->get(KoussApi::class));
 
-//            $manager->pushApi(
-//                new MiaoYouQuanApi(
-//                    config('taobaotop.third.miao_you_quan.app_key'),
-//                    config('taobaotop.third.miao_you_quan.tb_name')
-//                )
-//            );
-
+            $manager->pushApi($app->get(MiaoYouQuanApi::class));
             return $manager;
         });
+
+        // 第三方API - KoussApi
+        $this->app->singleton(KoussApi::class, function () {
+            return new KoussApi(
+                config('taobaotop.third.kouss.session'),
+                config('taobaotop.third.kouss.debug')
+            );
+        });
+
+        // 第三方API - MiaoYouQuan
+        $this->app->singleton(MiaoYouQuanApi::class, function () {
+            return new MiaoYouQuanApi(
+                config('taobaotop.third.miao_you_quan.app_key'),
+                config('taobaotop.third.miao_you_quan.tb_name'),
+                config('taobaotop.third.miao_you_quan.vip_lv')
+            );
+        });
+
         $this->app->alias(Manager::class, "tbk.third.manager");
 
         $this->app->singleton(TbkRebateHandler::class);

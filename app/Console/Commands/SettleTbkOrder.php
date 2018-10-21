@@ -9,9 +9,11 @@ namespace App\Console\Commands;
 
 use App\Console\Command;
 use App\Handlers\TbkRebateHandler;
+use App\Models\MoneyFlow;
 use App\Models\TbkOrder;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class SettleTbkOrder extends Command
 {
@@ -94,9 +96,17 @@ class SettleTbkOrder extends Command
                         $tbkOrder->rebate_time = Carbon::now();
                         $tbkOrder->save();
 
-                        $newBalance = User::where('id', $tbkOrder['user_id'])->increment('balance', $rebate);
-                        $tbkOrder->user->refresh();
-                        $this->comment("用户 {$tbkOrder->user->name} 结算一笔订单 , 新入账 $rebate 元, 账户余额为 $newBalance 元. {$tbkOrder['trade_id']}  {$tbkOrder['item_title']}");
+                        $result = User::where('id', $tbkOrder['user_id'])->increment('balance', $rebate);
+                        $user = $tbkOrder->user->refresh();
+                        $moneyFlow = $tbkOrder->user->moneyFlows()->create([
+                            'amount' => $rebate,
+                            'balance' => $user->balance,
+                            'type' => MoneyFlow::TYPE_INCOME,
+                            'sub_type' => MoneyFlow::SUB_TYPE_ORDER_SETTLE,
+                            'tbk_order_id' => $tbkOrder->id,
+                            'comment' => "订单: {$tbkOrder->trade_id}, 商品: " . Str::limit($tbkOrder->item_title),
+                        ]);
+                        $this->comment("用户 {$tbkOrder->user->name} 结算一笔订单, 操作影响结果: {$result} , 新入账 $rebate 元, 账户余额为 {$tbkOrder->user->balance} 元. {$tbkOrder['trade_id']}  {$tbkOrder['item_title']}");
                     }
                 });
         $this->line("本次共遍历 $count 条订单数据.", $count > 0 ? "comment" : "info");

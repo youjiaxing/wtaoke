@@ -7,6 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 
 class MoneyFlow extends Model
 {
+    protected $fillable = [
+        'user_id',
+        'amount',
+        'balance',
+        'type',
+        'sub_type',
+        'tbk_order_id',
+        'comment',
+        'channel',
+        'account',
+    ];
+
     /**
      * 大类: 收入
      */

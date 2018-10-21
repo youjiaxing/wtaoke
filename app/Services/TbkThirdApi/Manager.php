@@ -12,6 +12,7 @@ use App\Services\TbkThirdApi\Api\Api;
 /**
  * Class Manager
  * @package App\Services\TbkThirdApi
+ *
  * @method false|mixed scOrderGet(\TopClient\request\TbkScOrderGetRequest $request)
  */
 class Manager

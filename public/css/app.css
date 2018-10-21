@@ -8545,3 +8545,50 @@ body {
   text-decoration: none;
 }
 
+.wechat-tbkItem-show-page .item-desc {
+  padding-top: 5px;
+}
+
+.wechat-tbkItem-show-page .badge-tmall {
+  background-color: #ff0011;
+}
+
+.wechat-tbkItem-show-page .money-big {
+  color: #ff0011;
+  font-weight: bolder;
+}
+
+.wechat-tbkItem-show-page .coupon-money {
+  background-color: #e1e1e1;
+  color: #444444;
+}
+
+.wechat-tbkItem-show-page .coupon-info {
+  background: #444444;
+  color: #e1e1e1;
+}
+
+.wechat-tbkItem-show-page .bg-white {
+  background-color: #f5f8fa;
+}
+
+.wechat-tbkItem-show-page .has-coupon .coupon-money {
+  color: #ff0033;
+  background-color: #ffc8ca;
+}
+
+.wechat-tbkItem-show-page .has-coupon .coupon-info {
+  color: #fff;
+  background-color: #ff0033;
+}
+
+.wechat-tbkItem-show-page .shop-mark {
+  border: solid 1px #ee0000;
+  color: #ee0000;
+}
+
+.wechat-tbkItem-show-page .estimate-rebate {
+  background-color: #ff0033;
+  color: #fff;
+}
+

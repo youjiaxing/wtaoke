@@ -42,6 +42,7 @@ class NotifyTbkOrder extends Command
     public function handle()
     {
         $count = 0;
+        $failCount = 0;
         $totalCount = TbkOrder::where('need_notify', true)->count();
         $this->debug("等待通知的订单共 $totalCount 条");
 
@@ -53,7 +54,7 @@ class NotifyTbkOrder extends Command
         TbkOrder::where('need_notify', true)
             ->chunk(
                 100,
-                function ($tbkOrders) use (&$count) {
+                function ($tbkOrders) use (&$count, &$failCount) {
                     foreach ($tbkOrders as $tbkOrder) {
                         $count++;
 
@@ -65,63 +66,91 @@ class NotifyTbkOrder extends Command
                             continue;
                         }
 
-                        try {
-                            switch ($tbkOrder->tk_status) {
-                                // 3：订单已结算
-                                case 3:
-                                    $this->notifyNewSettle($tbkOrder);
-                                    break;
+                        $result = false;
+                        switch ($tbkOrder->tk_status) {
+                            // 3：订单已结算
+                            case 3:
+                                $result = $this->notifyNewSettle($tbkOrder);
+                                break;
 
-                                // 12：订单付款
-                                case 12:
-                                    $this->notifyNewOrder($tbkOrder);
-                                    break;
+                            // 12：订单付款
+                            case 12:
+                                $result = $this->notifyNewOrder($tbkOrder);
+                                break;
 
-                                // 13：订单失效
-                                case 13:
-                                    // 忽略, 不做任何处理
-                                    break;
+                            // 13：订单失效
+                            case 13:
+                                $result = true;
+                                // 忽略, 不做任何处理
+                                break;
 
-                                // 14: 订单成功, 但卖家账户没钱, 无法结算
-                                case 14:
-                                    $this->notifyFailSettle($tbkOrder);
-                                    // 先忽略, 暂时不做任何处理
-                                    break;
-                            }
-                        } catch (\Exception $e) {
-                            $this->warn("订单 {$tbkOrder['id']} 通知 {$tbkOrder['user_id']} 失败: " . $e->getMessage());
+                            // 14: 订单成功, 但卖家账户没钱, 无法结算
+                            case 14:
+                                $result = $this->notifyFailSettle($tbkOrder);
+                                // 先忽略, 暂时不做任何处理
+                                break;
+
+                            default:
+                                $result = true;
+                                $this->error("未知的订单状态: {$tbkOrder->tk_status}, " . json($tbkOrder));
                         }
 
-                        $tbkOrder['need_notify'] = false;
-                        $tbkOrder->save();
+                        if ($result) {
+                            $tbkOrder['need_notify'] = false;
+                            $tbkOrder->save();
+                        } else {
+                            $failCount++;
+                        }
                     }
-                });
-        $this->line("本次共遍历 $count 条订单数据.", $count > 0 ? "comment" : "info");
+                }
+            );
+
+        if ($failCount > 0) {
+            $this->warn("本次共遍历 $count 条订单数据, 其中失败 $failCount 条.");
+        } else {
+            $this->line("本次共遍历 $count 条订单数据.", $count > 0 ? "comment" : "info");
+        }
     }
 
     /**
-     * 同步到新订单
+     * 通知新订单
      *
      * @param TbkOrder $tbkOrder
      *
-     * @throws \Exception
+     * @return bool
      */
     protected function notifyNewOrder(TbkOrder $tbkOrder)
     {
-        //只通知最近N天内(N取决于微信对于回复消息给用户的限制) - 调试时先关掉
-//        if (!$tbkOrder->create_time->lt(Carbon::now()->subDays(3))) {
-//            return;
-//        }
-
         $user = $tbkOrder->user;
-        $this->comment("通知用户 {$user->name} 有一笔新的订单 {$tbkOrder['trade_id']}  {$tbkOrder['item_title']}");
-//        app(WeChatNotify::class)->notifyUser(
-//            $user->weixin_openid,
-//            app(TbkOrderTransformer::class)->newOrderWithText($tbkOrder)
-//        );
-        app(WeChatNotify::class)->notifyNewOrder($user->weixin_openid, $tbkOrder);
+
+        $cacheKey = "notify_new_order_{$tbkOrder->id}";
+        $notifyCount = \Cache::get($cacheKey, 0);
+        if ($notifyCount > 1) {
+            $this->warn("通知用户 {$user->name} 有一笔新的订单 {$tbkOrder->trade_id} 失败次数达到上限, 稍后将重试");
+            return false;
+        }
+
+
+        try {
+            app(WeChatNotify::class)->notifyNewOrder($user->weixin_openid, $tbkOrder);
+        } catch (\Exception $e) {
+            if ($e->getCode() != 43004) {
+                $this->warn("通知用户 {$user->name} 有一笔新的订单时错误:'errorcode:{$e->getCode()} {$e->getMessage()}', 订单号:{$tbkOrder['trade_id']}  {$tbkOrder['item_title']}");
+                \Cache::set($cacheKey, $notifyCount + 1, 10);
+                return false;
+            }
+        }
+
+        $this->comment("通知用户 {$user->name} 有一笔新的订单成功. {$tbkOrder['trade_id']}  {$tbkOrder['item_title']}");
+        \Cache::delete($cacheKey);
+        return true;
     }
 
+    /**
+     * @param TbkOrder $tbkOrder
+     *
+     * @return bool
+     */
     protected function notifyNewSettle(TbkOrder $tbkOrder)
     {
         /*
@@ -129,31 +158,42 @@ class NotifyTbkOrder extends Command
          * 注意避免骗佣金的情况
          *      -  确认收货N天后才结算给用户 (N=8)
          */
-
         $user = $tbkOrder->user;
+
+        $cacheKey = "notify_new_settle_{$tbkOrder->id}";
+        $notifyCount = \Cache::get($cacheKey, 0);
+        if ($notifyCount > 1) {
+            $this->warn("通知用户 {$user->name} 有一笔新的返利到账 {$tbkOrder->trade_id} 失败次数达到上限, 稍后将重试");
+            return false;
+        }
+
 
         if ($tbkOrder->is_rebate) {
             // 通知用户钱已经到了
-//            app(WeChatNotify::class)->notifyUser(
-//                $user->weixin_openid,
-//                app(TbkOrderTransformer::class)->newRebateWithText($tbkOrder)
-//            );
-            app(WeChatNotify::class)->notifySettleOrder($user->weixin_openid, $tbkOrder);
+            try {
+                app(WeChatNotify::class)->notifySettleOrder($user->weixin_openid, $tbkOrder);
+            } catch (\Exception $e) {
+                if ($e->getCode() != 43004) {
 
 
+                    $this->warn("通知用户 {$user->name} 返利 {$tbkOrder['rebate_fee']} 已到账时错误: 'errorcode:{$e->getCode()} {$e->getMessage()}', 订单号:{$tbkOrder['trade_id']}  {$tbkOrder['item_title']}");
+                    \Cache::set($cacheKey, $notifyCount + 1, 10);
+                    return false;
+                }
+            }
 
             $this->comment("通知用户 {$user->name} 返利 {$tbkOrder['rebate_fee']} 已到账 {$tbkOrder['trade_id']}  {$tbkOrder['item_title']}");
-            return;
         } else {
             // 还未返利, 不用通知
-            return;
         }
 
-        $this->comment("通知用户 notifyNewSettle");
+        \Cache::delete($cacheKey);
+        return true;
     }
 
     protected function notifyFailSettle(TbkOrder $tbkOrder)
     {
         $this->comment("通知用户 notifyFailSettle");
+        return true;
     }
 }

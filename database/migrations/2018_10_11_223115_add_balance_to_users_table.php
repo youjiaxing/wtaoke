@@ -16,6 +16,7 @@ class AddBalanceToUsersTable extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->decimal('balance', 12, 2)->default(0)->comment("用户余额");
             $table->decimal('balance_withdraw', 12, 2)->default(0)->comment("申请提现金额");
+            $table->timestamp('withdraw_at')->nullable();
         });
     }
 
@@ -29,6 +30,7 @@ class AddBalanceToUsersTable extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->dropColumn('balance');
             $table->dropColumn('balance_withdraw');
+            $table->dropColumn('withdraw_at');
         });
     }
 }
