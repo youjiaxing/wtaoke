@@ -277,8 +277,18 @@ body {
 
   // 预估佣金字样
   .estimate-rebate {
+    margin-top: 3px;
+    width: 100%;
     background-color: #ff0033;
     color: #fff;
+  }
+
+  // 一键复制按钮
+  #copyCode {
+    background-color: #ff0033;
+    color: #fff;
+    width: 100%;
+    margin-bottom: 7px;
   }
 }
 

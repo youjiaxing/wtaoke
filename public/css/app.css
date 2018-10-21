@@ -8588,7 +8588,16 @@ body {
 }
 
 .wechat-tbkItem-show-page .estimate-rebate {
+  margin-top: 3px;
+  width: 100%;
   background-color: #ff0033;
   color: #fff;
+}
+
+.wechat-tbkItem-show-page #copyCode {
+  background-color: #ff0033;
+  color: #fff;
+  width: 100%;
+  margin-bottom: 7px;
 }
 
